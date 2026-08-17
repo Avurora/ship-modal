@@ -16,7 +16,7 @@
     $('.ship-modal-buttons-row').toggle(type === 'hybrid' || type === 'text');
     $('.ship-modal-pages-row').toggle(type === 'pager');
     $('.ship-modal-target-picker').toggle(currentScope() === 'selected');
-    $('#ship-modal-body').attr('maxlength', type === 'text' ? '120' : '80');
+    $('#ship-modal-body').removeAttr('maxlength');
     var trigger = $('#ship-modal-trigger').val();
     $('.ship-modal-delay-row').toggle(trigger === 'auto');
     $('.ship-modal-scroll-row').toggle(trigger === 'scroll');
