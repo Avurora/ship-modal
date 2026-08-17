@@ -148,7 +148,7 @@ final class Ship_Modal
     public function render_content_box($post)
     {
         wp_nonce_field('ship_modal_save', 'ship_modal_nonce');
-        $type = $this->meta($post->ID, 'content_type', 'html');
+        $type = $this->meta($post->ID, 'content_type', 'image');
         $design = $this->meta($post->ID, 'design', 'center');
         $html = $this->meta($post->ID, 'html');
         $image_id = absint($this->meta($post->ID, 'image_id'));
