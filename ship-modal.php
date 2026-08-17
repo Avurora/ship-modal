@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Ship Modal
  * Description: HTML・画像バナー・期間指定・表示頻度・計測に対応したモーダル管理プラグイン。
- * Version: 0.6.4
+ * Version: 0.6.5
  * Author: Ship Inc.
  * License: GPL-2.0-or-later
  * Text Domain: ship-modal
@@ -12,7 +12,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('SHIP_MODAL_VERSION', '0.6.4');
+define('SHIP_MODAL_VERSION', '0.6.5');
 define('SHIP_MODAL_FILE', __FILE__);
 define('SHIP_MODAL_DIR', plugin_dir_path(__FILE__));
 define('SHIP_MODAL_URL', plugin_dir_url(__FILE__));

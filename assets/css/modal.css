@@ -6,3 +6,8 @@
 .ship-modal__button,.ship-modal__content .wp-block-button__link,.ship-modal__content a.button,.ship-modal__content button:not(.ship-modal__close){border-radius:0!important}
 .ship-modal__backdrop{background:rgba(15,23,42,.45);backdrop-filter:none}
 .ship-modal__dialog{width:min(calc(100vw - 24px),var(--ship-modal-max-width,620px));border-radius:var(--ship-modal-radius,0px)!important}.ship-modal__content{padding:var(--ship-modal-padding,20px)}.ship-modal__content--flush,.ship-modal__content--pager{padding:0}.ship-modal--bottom .ship-modal__dialog{width:min(calc(100vw - 24px),var(--ship-modal-max-width,980px));border-radius:var(--ship-modal-radius,0px)!important}.ship-modal--side .ship-modal__dialog{width:min(calc(100vw - 24px),var(--ship-modal-max-width,420px))}.ship-modal--fullscreen .ship-modal__dialog{width:100vw;max-width:none;border-radius:0!important}.ship-modal--fullscreen .ship-modal__content{padding:var(--ship-modal-padding,24px)}.ship-modal__close{border-radius:var(--ship-modal-radius,0px)!important}.ship-modal__hybrid--top .ship-modal__hybrid-media{margin:calc(var(--ship-modal-padding,20px) * -1) calc(var(--ship-modal-padding,20px) * -1) var(--ship-modal-padding,20px)}.ship-modal__content--pager .ship-modal__page-html{padding:var(--ship-modal-padding,20px)}
+.ship-modal__dialog{overflow:visible}
+.ship-modal__content{max-height:calc(100dvh - 24px);overflow-y:auto;box-sizing:border-box}
+.ship-modal__close{top:-12px;right:-12px}
+.ship-modal--fullscreen .ship-modal__content{max-height:100%;overflow-y:auto}
+@media (max-width:767px){.ship-modal__content{max-height:calc(100dvh - 24px)}.ship-modal__close{top:-10px;right:-10px}}
