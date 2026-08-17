@@ -258,6 +258,12 @@ final class Ship_Modal
         $show_close = $this->meta($post->ID, 'show_close', '1');
         $close_overlay = $this->meta($post->ID, 'close_overlay', '1');
         $trigger_text = $this->meta($post->ID, 'trigger_text', 'キャンペーン詳細を見る');
+        $trigger_bg_color = sanitize_hex_color($this->meta($post->ID, 'trigger_bg_color', '#0f766e')) ?: '#0f766e';
+        $trigger_text_color = sanitize_hex_color($this->meta($post->ID, 'trigger_text_color', '#ffffff')) ?: '#ffffff';
+        $trigger_position = $this->meta($post->ID, 'trigger_position', 'right');
+        if (! in_array($trigger_position, array('left', 'center', 'right'), true)) {
+            $trigger_position = 'right';
+        }
         $target_ids = array_values(array_filter(array_map('absint', (array) $this->meta($post->ID, 'target_ids', array()))));
         $targetable_types = $this->targetable_post_types();
         $selected_posts = $target_ids ? get_posts(array(
@@ -292,6 +298,7 @@ final class Ship_Modal
             <tr class="ship-modal-delay-row"><th><label for="ship-modal-delay">表示までの秒数</label></th><td><input type="number" min="0" max="120" step="1" class="small-text" name="ship_modal_delay" id="ship-modal-delay" value="<?php echo esc_attr($delay); ?>"> 秒</td></tr>
             <tr class="ship-modal-scroll-row"><th><label for="ship-modal-scroll_threshold">スクロール到達率</label></th><td><input type="number" min="10" max="95" step="5" class="small-text" name="ship_modal_scroll_threshold" id="ship-modal-scroll_threshold" value="<?php echo esc_attr($scroll_threshold); ?>"> ％<p class="description">ページ全体の指定割合までスクロールすると表示します。</p></td></tr>
             <tr class="ship-modal-trigger-text-row"><th><label for="ship-modal-trigger_text">ボタン文言</label></th><td><input type="text" class="widefat" name="ship_modal_trigger_text" id="ship-modal-trigger_text" value="<?php echo esc_attr($trigger_text); ?>"></td></tr>
+            <tr class="ship-modal-trigger-style-row"><th>ボタンデザイン</th><td><label>背景色 <input type="color" name="ship_modal_trigger_bg_color" value="<?php echo esc_attr($trigger_bg_color); ?>"></label> <label>文字色 <input type="color" name="ship_modal_trigger_text_color" value="<?php echo esc_attr($trigger_text_color); ?>"></label><br><label for="ship-modal-trigger_position">配置 </label><?php $this->select('trigger_position', $trigger_position, array('left' => '左下', 'center' => '中央下', 'right' => '右下')); ?><p class="description">手動表示ボタンの背景色・文字色・画面下部の配置を設定します。</p></td></tr>
             <tr><th><label for="ship-modal-frequency">表示頻度</label></th><td><?php $this->select('frequency', $frequency, array('always' => '毎回', 'session' => 'セッションごとに1回', 'day' => '1日1回', 'once' => 'ユーザーごとに1回')); ?></td></tr>
             <tr><th><label for="ship-modal-start_at">開始日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_start_at" id="ship-modal-start_at" value="<?php echo esc_attr($start); ?>"><p class="description">空欄ならすぐ表示</p></td></tr>
             <tr><th><label for="ship-modal-end_at">終了日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_end_at" id="ship-modal-end_at" value="<?php echo esc_attr($end); ?>"><p class="description">空欄なら期限なし</p></td></tr>
@@ -462,6 +469,10 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_buttons', $buttons);
         update_post_meta($post_id, '_ship_modal_image_id', $image_id);
         update_post_meta($post_id, '_ship_modal_link_new_tab', isset($_POST['ship_modal_link_new_tab']) ? '1' : '0');
+        $trigger_bg_color = isset($_POST['ship_modal_trigger_bg_color']) ? sanitize_hex_color(wp_unslash($_POST['ship_modal_trigger_bg_color'])) : '';
+        $trigger_text_color = isset($_POST['ship_modal_trigger_text_color']) ? sanitize_hex_color(wp_unslash($_POST['ship_modal_trigger_text_color'])) : '';
+        update_post_meta($post_id, '_ship_modal_trigger_bg_color', $trigger_bg_color ?: '#0f766e');
+        update_post_meta($post_id, '_ship_modal_trigger_text_color', $trigger_text_color ?: '#ffffff');
         update_post_meta($post_id, '_ship_modal_delay', isset($_POST['ship_modal_delay']) ? min(120, max(0, absint($_POST['ship_modal_delay']))) : 2);
         update_post_meta($post_id, '_ship_modal_scroll_threshold', isset($_POST['ship_modal_scroll_threshold']) ? min(95, max(10, absint($_POST['ship_modal_scroll_threshold']))) : 50);
         update_post_meta($post_id, '_ship_modal_show_close', isset($_POST['ship_modal_show_close']) ? '1' : '0');
@@ -485,6 +496,7 @@ final class Ship_Modal
             'design' => array('center', 'bottom', 'side', 'fullscreen'),
             'scope' => array('all', 'front', 'singular', 'selected', 'shortcode'),
             'trigger' => array('auto', 'scroll', 'exit_intent', 'manual'),
+            'trigger_position' => array('left', 'center', 'right'),
             'frequency' => array('always', 'session', 'day', 'once'),
         );
         foreach ($allowed as $field => $values) {
@@ -732,8 +744,15 @@ final class Ship_Modal
         ob_start();
         if ('manual' === $trigger) {
             $button_text = $this->meta($post_id, 'trigger_text', 'キャンペーン詳細を見る');
-            $trigger_class = $shortcode ? 'ship-modal-trigger' : 'ship-modal-trigger ship-modal-trigger--floating';
-            echo '<button type="button" class="' . esc_attr($trigger_class) . '" data-ship-modal-target="' . esc_attr($modal_id) . '">' . esc_html($button_text) . '</button>';
+            $trigger_bg_color = sanitize_hex_color($this->meta($post_id, 'trigger_bg_color', '#0f766e')) ?: '#0f766e';
+            $trigger_text_color = sanitize_hex_color($this->meta($post_id, 'trigger_text_color', '#ffffff')) ?: '#ffffff';
+            $trigger_position = $this->meta($post_id, 'trigger_position', 'right');
+            if (! in_array($trigger_position, array('left', 'center', 'right'), true)) {
+                $trigger_position = 'right';
+            }
+            $trigger_class = $shortcode ? 'ship-modal-trigger ship-modal-trigger--inline-' . $trigger_position : 'ship-modal-trigger ship-modal-trigger--floating ship-modal-trigger--floating-' . $trigger_position;
+            $trigger_style = '--ship-modal-trigger-bg:' . $trigger_bg_color . ';--ship-modal-trigger-color:' . $trigger_text_color . ';';
+            echo '<button type="button" class="' . esc_attr($trigger_class) . '" style="' . esc_attr($trigger_style) . '" data-ship-modal-target="' . esc_attr($modal_id) . '">' . esc_html($button_text) . '</button>';
         }
         ?>
         <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-scroll-threshold="<?php echo esc_attr($scroll_threshold); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>

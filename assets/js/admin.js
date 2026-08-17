@@ -21,6 +21,7 @@
     $('.ship-modal-delay-row').toggle(trigger === 'auto');
     $('.ship-modal-scroll-row').toggle(trigger === 'scroll');
     $('.ship-modal-trigger-text-row').toggle(trigger === 'manual');
+    $('.ship-modal-trigger-style-row').toggle(trigger === 'manual');
   }
 
   function updateCounter(field) {

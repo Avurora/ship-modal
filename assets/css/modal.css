@@ -11,3 +11,9 @@
 .ship-modal__close{top:-18px;right:-18px}
 .ship-modal--fullscreen .ship-modal__content{max-height:100%;overflow-y:auto}
 @media (max-width:767px){.ship-modal__content{max-height:calc(100dvh - 24px)}.ship-modal__close{top:-14px;right:-14px}}
+.ship-modal-trigger{background:var(--ship-modal-trigger-bg,#0f766e);color:var(--ship-modal-trigger-color,#fff)}
+.ship-modal-trigger--floating-left{left:20px;right:auto}
+.ship-modal-trigger--floating-center{left:50%;right:auto;transform:translateX(-50%)}
+.ship-modal-trigger--inline-left{display:flex;margin-right:auto}
+.ship-modal-trigger--inline-center{display:flex;margin-right:auto;margin-left:auto}
+.ship-modal-trigger--inline-right{display:flex;margin-left:auto}
