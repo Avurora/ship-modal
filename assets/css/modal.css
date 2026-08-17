@@ -23,8 +23,8 @@
 .ship-modal__hybrid-media img,
 .ship-modal__page-media img{
   display:block;
-  width:auto;
-  max-width:100%;
+  width:auto!important;
+  max-width:100%!important;
   height:auto;
   margin-right:auto;
   margin-left:auto;
