@@ -61,7 +61,7 @@
   function searchTargets() {
     var query = $.trim($('#ship-modal-target-search').val() || '');
     var postType = $('#ship-modal-target-post-type').val() || '';
-    if (query.length < 2) {
+    if (query.length === 1) {
       showTargetMessage('ページ名・記事タイトルを2文字以上入力してください。');
       return;
     }
@@ -69,12 +69,12 @@
       showTargetMessage('検索設定を読み込めませんでした。ページを再読み込みしてください。');
       return;
     }
-    showTargetMessage('検索中…');
-    $.post(adminConfig.ajaxUrl, { action: 'ship_modal_search_targets', nonce: adminConfig.targetSearchNonce, q: query, post_type: postType })
+    showTargetMessage(query ? '検索中…' : '最近の公開ページを読み込み中…');
+    $.post(adminConfig.ajaxUrl, { action: 'ship_modal_search_targets', nonce: adminConfig.targetSearchNonce, modal_post_id: adminConfig.postId || '', q: query, post_type: postType })
       .done(function (response) {
         var $results = $('#ship-modal-target-results').empty();
         if (!response || !response.success || !response.data || !response.data.length) {
-          showTargetMessage('該当する公開ページがありません。');
+          showTargetMessage(query ? '該当する公開ページがありません。' : '公開ページがありません。');
           return;
         }
         response.data.forEach(function (item) {
@@ -95,8 +95,12 @@
     $('[maxlength]').each(function () { updateCounter(this); });
     $(document).on('input', '[maxlength]', function () { updateCounter(this); });
     $('#ship-modal-content_type, #ship-modal-trigger, #ship-modal-target-post-type').on('change', refreshRows);
-    $('input[name="ship_modal_scope"]').on('change', refreshRows);
+    $('input[name="ship_modal_scope"]').on('change', function () {
+      refreshRows();
+      if (currentScope() === 'selected') searchTargets();
+    });
     updateTargetCount();
+    if (currentScope() === 'selected') searchTargets();
     var targetSearchTimer;
     $('#ship-modal-target-search').on('input', function () {
       window.clearTimeout(targetSearchTimer);

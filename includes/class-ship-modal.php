@@ -106,11 +106,12 @@ final class Ship_Modal
     public function search_targets()
     {
         check_ajax_referer('ship_modal_target_search', 'nonce');
-        if (! current_user_can('edit_posts')) {
+        $modal_post_id = isset($_POST['modal_post_id']) ? absint($_POST['modal_post_id']) : 0;
+        if (! ($modal_post_id && current_user_can('edit_post', $modal_post_id)) && ! current_user_can('edit_posts') && ! current_user_can('edit_pages') && ! current_user_can('manage_options')) {
             wp_send_json_error(array('message' => '権限がありません。'), 403);
         }
         $search = isset($_POST['q']) ? sanitize_text_field(wp_unslash($_POST['q'])) : '';
-        if (mb_strlen($search) < 2) {
+        if ($search !== '' && mb_strlen($search) < 2) {
             wp_send_json_success(array());
         }
         $types = $this->targetable_post_types();
@@ -121,7 +122,7 @@ final class Ship_Modal
             'post_status' => 'publish',
             'posts_per_page' => 30,
             's' => $search,
-            'orderby' => 'relevance',
+            'orderby' => $search !== '' ? 'relevance' : 'date',
             'order' => 'DESC',
         ));
         $results = array();
@@ -510,6 +511,7 @@ final class Ship_Modal
         wp_localize_script('ship-modal-admin', 'ShipModalAdminConfig', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'targetSearchNonce' => wp_create_nonce('ship_modal_target_search'),
+            'postId' => isset($_GET['post']) ? absint($_GET['post']) : 0,
         ));
         wp_enqueue_style('ship-modal-admin', SHIP_MODAL_URL . 'assets/css/admin.css', array(), SHIP_MODAL_VERSION);
     }
