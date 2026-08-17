@@ -75,7 +75,7 @@ final class Ship_Modal
     public function register_meta_boxes()
     {
         add_meta_box('ship_modal_content', 'モーダルの内容', array($this, 'render_content_box'), 'ship_modal', 'normal', 'high');
-        add_meta_box('ship_modal_display', '表示設定', array($this, 'render_display_box'), 'ship_modal', 'side', 'high');
+        add_meta_box('ship_modal_display', '表示設定', array($this, 'render_display_box'), 'ship_modal', 'normal', 'high');
         add_meta_box('ship_modal_stats', '計測', array($this, 'render_stats_box'), 'ship_modal', 'side', 'default');
     }
 
