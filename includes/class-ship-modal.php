@@ -92,6 +92,32 @@ final class Ship_Modal
         echo '</select>';
     }
 
+    private function render_page_row($index, $page = array())
+    {
+        $image_id = isset($page['image_id']) ? absint($page['image_id']) : 0;
+        $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+        $html = isset($page['html']) ? $page['html'] : '';
+        $link_url = isset($page['link_url']) ? $page['link_url'] : '';
+        ?>
+        <div class="ship-modal-page-row" data-page-index="<?php echo esc_attr($index); ?>">
+            <div class="ship-modal-page-row__header"><strong>ページ <?php echo esc_html(is_numeric($index) ? ((int) $index + 1) : '__NUMBER__'); ?></strong><button type="button" class="button-link-delete ship-modal-remove-page">このページを削除</button></div>
+            <div class="ship-modal-page-row__grid">
+                <div>
+                    <input type="hidden" name="ship_modal_pages[<?php echo esc_attr($index); ?>][image_id]" id="ship-modal-page-image-<?php echo esc_attr($index); ?>" value="<?php echo esc_attr($image_id); ?>">
+                    <div id="ship-modal-page-preview-<?php echo esc_attr($index); ?>" class="ship-modal-page-preview"><?php if ($image_url) : ?><img src="<?php echo esc_url($image_url); ?>" alt=""><?php endif; ?></div>
+                    <button type="button" class="button ship-modal-page-select-image" data-target-id="ship-modal-page-image-<?php echo esc_attr($index); ?>" data-target-preview="ship-modal-page-preview-<?php echo esc_attr($index); ?>">画像を選択</button>
+                </div>
+                <div>
+                    <label>ページ内HTML</label>
+                    <textarea class="large-text" rows="6" name="ship_modal_pages[<?php echo esc_attr($index); ?>][html]"><?php echo esc_textarea($html); ?></textarea>
+                    <label>画像クリック先URL</label>
+                    <input type="url" class="widefat" name="ship_modal_pages[<?php echo esc_attr($index); ?>][link_url]" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/">
+                </div>
+            </div>
+        </div>
+        <?php
+    }
+
     public function render_content_box($post)
     {
         wp_nonce_field('ship_modal_save', 'ship_modal_nonce');
@@ -101,12 +127,17 @@ final class Ship_Modal
         $image_id = absint($this->meta($post->ID, 'image_id'));
         $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'large') : '';
         $link_url = $this->meta($post->ID, 'link_url');
+        $image_position = $this->meta($post->ID, 'image_position', 'top');
+        $pages = $this->meta($post->ID, 'pages', array());
+        if (! is_array($pages) || ! $pages) {
+            $pages = array(array());
+        }
         ?>
-        <p class="description">HTML、画像バナー、リンク付き画像のいずれかを選べます。デザインは表示設定で選択できます。</p>
+        <p class="description">HTML、画像バナー、画像＋HTML、複数ページのページャーから選べます。ページャーは各ページに画像とHTMLを設定できます。</p>
         <table class="form-table ship-modal-form-table">
-            <tr><th><label for="ship-modal-content_type">コンテンツタイプ</label></th><td><?php $this->select('content_type', $type, array('html' => 'HTML / リッチコンテンツ', 'image' => '画像バナー')); ?></td></tr>
+            <tr><th><label for="ship-modal-content_type">コンテンツタイプ</label></th><td><?php $this->select('content_type', $type, array('html' => 'HTML / リッチコンテンツ', 'image' => '画像バナー', 'hybrid' => '画像＋HTML', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
             <tr class="ship-modal-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
-            <tr class="ship-modal-image-row">
+            <tr class="ship-modal-single-image-row">
                 <th>画像</th>
                 <td>
                     <input type="hidden" name="ship_modal_image_id" id="ship-modal-image-id" value="<?php echo esc_attr($image_id); ?>">
@@ -115,9 +146,12 @@ final class Ship_Modal
                     <p class="description">メディアライブラリの画像を使用します。</p>
                 </td>
             </tr>
-            <tr class="ship-modal-image-row"><th><label for="ship-modal-link_url">クリック先URL</label></th><td><input type="url" class="widefat" name="ship_modal_link_url" id="ship-modal-link_url" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/"><p class="description">空欄なら画像はリンクになりません。</p></td></tr>
+            <tr class="ship-modal-single-image-row"><th><label for="ship-modal-link_url">クリック先URL</label></th><td><input type="url" class="widefat" name="ship_modal_link_url" id="ship-modal-link_url" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/"><p class="description">空欄なら画像はリンクになりません。</p></td></tr>
+            <tr class="ship-modal-hybrid-image-row"><th><label for="ship-modal-image_position">画像の位置</label></th><td><?php $this->select('image_position', $image_position, array('top' => '上', 'left' => '左', 'right' => '右')); ?></td></tr>
+            <tr class="ship-modal-pages-row"><th>ページ</th><td><div id="ship-modal-pages"><?php foreach ($pages as $index => $page) { $this->render_page_row($index, is_array($page) ? $page : array()); } ?></div><p><button type="button" class="button" id="ship-modal-add-page">＋ ページを追加</button></p><p class="description">各ページは画像とHTMLを個別に設定できます。</p></td></tr>
             <tr><th><label for="ship-modal-design">デザイン</label></th><td><?php $this->select('design', $design, array('center' => '中央カード', 'bottom' => '画面下部バナー', 'side' => '右下ポップアップ', 'fullscreen' => 'フルスクリーン')); ?></td></tr>
         </table>
+        <script type="text/html" id="ship-modal-page-template"><?php $this->render_page_row('__INDEX__', array()); ?></script>
         <?php
     }
 
@@ -179,8 +213,23 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_delay', isset($_POST['ship_modal_delay']) ? min(120, max(0, absint($_POST['ship_modal_delay']))) : 2);
         update_post_meta($post_id, '_ship_modal_show_close', isset($_POST['ship_modal_show_close']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_close_overlay', isset($_POST['ship_modal_close_overlay']) ? '1' : '0');
+        $pages = array();
+        if (isset($_POST['ship_modal_pages']) && is_array($_POST['ship_modal_pages'])) {
+            foreach (wp_unslash($_POST['ship_modal_pages']) as $page) {
+                if (! is_array($page)) {
+                    continue;
+                }
+                $pages[] = array(
+                    'image_id' => isset($page['image_id']) ? absint($page['image_id']) : 0,
+                    'html' => isset($page['html']) ? wp_kses_post($page['html']) : '',
+                    'link_url' => isset($page['link_url']) ? esc_url_raw($page['link_url']) : '',
+                );
+            }
+        }
+        update_post_meta($post_id, '_ship_modal_pages', $pages);
         $allowed = array(
-            'content_type' => array('html', 'image'),
+            'content_type' => array('html', 'image', 'hybrid', 'pager'),
+            'image_position' => array('top', 'left', 'right'),
             'design' => array('center', 'bottom', 'side', 'fullscreen'),
             'scope' => array('all', 'front', 'singular', 'shortcode'),
             'trigger' => array('auto', 'manual'),
@@ -292,6 +341,28 @@ final class Ship_Modal
         wp_localize_script('ship-modal', 'ShipModalConfig', array('ajaxUrl' => admin_url('admin-ajax.php'), 'nonce' => wp_create_nonce('ship_modal_event')));
     }
 
+    private function render_image_content($image_id, $link_url, $alt)
+    {
+        $image_id = absint($image_id);
+        if (! $image_id) {
+            return '';
+        }
+        $image = wp_get_attachment_image($image_id, 'full', false, array('class' => 'ship-modal__image', 'alt' => $alt));
+        if (! $image) {
+            return '';
+        }
+        $link_url = esc_url($link_url);
+        return $link_url ? '<a class="ship-modal__link" href="' . $link_url . '">' . $image . '</a>' : $image;
+    }
+
+    private function render_page_content($page, $title, $index)
+    {
+        $page = is_array($page) ? $page : array();
+        $image = $this->render_image_content(isset($page['image_id']) ? $page['image_id'] : 0, isset($page['link_url']) ? $page['link_url'] : '', $title . ' ' . ((int) $index + 1) . 'ページ目');
+        $html = isset($page['html']) ? wp_kses_post($page['html']) : '';
+        return '<div class="ship-modal__page-media">' . $image . '</div><div class="ship-modal__page-html">' . $html . '</div>';
+    }
+
     private function render_modal($post_id, $shortcode = false)
     {
         if (! $this->is_in_schedule($post_id)) {
@@ -305,14 +376,37 @@ final class Ship_Modal
         $show_close = '1' === $this->meta($post_id, 'show_close', '1');
         $close_overlay = '1' === $this->meta($post_id, 'close_overlay', '1');
         $title = get_the_title($post_id);
+        $image_position = $this->meta($post_id, 'image_position', 'top');
         $modal_id = 'ship-modal-' . absint($post_id) . '-' . wp_rand(100, 999);
         $content = '';
         if ('image' === $type) {
-            $image_id = absint($this->meta($post_id, 'image_id'));
-            if ($image_id) {
-                $image = wp_get_attachment_image($image_id, 'full', false, array('class' => 'ship-modal__image', 'alt' => $title));
-                $link = esc_url($this->meta($post_id, 'link_url'));
-                $content = $link ? '<a class="ship-modal__link" href="' . $link . '">' . $image . '</a>' : $image;
+            $content = $this->render_image_content($this->meta($post_id, 'image_id'), $this->meta($post_id, 'link_url'), $title);
+        } elseif ('hybrid' === $type) {
+            $image = $this->render_image_content($this->meta($post_id, 'image_id'), $this->meta($post_id, 'link_url'), $title);
+            $html = wp_kses_post($this->meta($post_id, 'html'));
+            $content = '<div class="ship-modal__hybrid ship-modal__hybrid--' . esc_attr($image_position) . '"><div class="ship-modal__hybrid-media">' . $image . '</div><div class="ship-modal__hybrid-html">' . $html . '</div></div>';
+        } elseif ('pager' === $type) {
+            $pages = $this->meta($post_id, 'pages', array());
+            if (is_array($pages)) {
+                $pages = array_values($pages);
+            } else {
+                $pages = array();
+            }
+            $pages = array_filter($pages, function ($page) {
+                return is_array($page) && (! empty($page['image_id']) || ! empty($page['html']));
+            });
+            $pages = array_values($pages);
+            if ($pages) {
+                $page_markup = '';
+                foreach ($pages as $index => $page) {
+                    $page_markup .= '<section class="ship-modal__page' . (0 === $index ? ' is-active' : '') . '" data-ship-modal-page-panel="' . esc_attr($index) . '"' . (0 === $index ? '' : ' hidden') . ' aria-hidden="' . (0 === $index ? 'false' : 'true') . '">' . $this->render_page_content($page, $title, $index) . '</section>';
+                }
+                $controls = '<nav class="ship-modal__pager" aria-label="モーダルページ切り替え"><button type="button" class="ship-modal__pager-arrow" data-ship-modal-page-prev disabled>前へ</button><div class="ship-modal__pager-dots">';
+                foreach ($pages as $index => $page) {
+                    $controls .= '<button type="button" class="ship-modal__pager-dot' . (0 === $index ? ' is-active' : '') . '" data-ship-modal-page="' . esc_attr($index) . '" aria-label="' . esc_attr(((int) $index + 1) . 'ページ目') . '"' . (0 === $index ? ' aria-current="true"' : '') . '>' . esc_html((string) ((int) $index + 1)) . '</button>';
+                }
+                $controls .= '</div><button type="button" class="ship-modal__pager-arrow" data-ship-modal-page-next' . (count($pages) < 2 ? ' disabled' : '') . '>次へ</button></nav>';
+                $content = '<div class="ship-modal__pages" data-ship-modal-page-count="' . esc_attr(count($pages)) . '">' . $page_markup . $controls . '</div>';
             }
         } else {
             $content = wp_kses_post($this->meta($post_id, 'html'));
