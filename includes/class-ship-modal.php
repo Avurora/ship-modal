@@ -19,6 +19,7 @@ final class Ship_Modal
     private function __construct()
     {
         add_action('init', array($this, 'register_post_type'));
+        add_action('init', array($this, 'ensure_admin_capabilities'), 20);
         add_action('add_meta_boxes', array($this, 'register_meta_boxes'));
         add_action('save_post_ship_modal', array($this, 'save_modal'), 10, 2);
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
@@ -65,11 +66,55 @@ final class Ship_Modal
             'show_in_menu' => true,
             'menu_icon' => 'dashicons-welcome-view-site',
             'supports' => array('title'),
-            'capability_type' => 'post',
+            'capability_type' => array('ship_modal', 'ship_modals'),
+            'capabilities' => array(
+                'edit_post' => 'edit_ship_modal',
+                'read_post' => 'read_ship_modal',
+                'delete_post' => 'delete_ship_modal',
+                'edit_posts' => 'edit_ship_modals',
+                'edit_others_posts' => 'edit_others_ship_modals',
+                'publish_posts' => 'publish_ship_modals',
+                'read_private_posts' => 'read_private_ship_modals',
+                'delete_posts' => 'delete_ship_modals',
+                'delete_private_posts' => 'delete_private_ship_modals',
+                'delete_published_posts' => 'delete_published_ship_modals',
+                'delete_others_posts' => 'delete_others_ship_modals',
+                'edit_private_posts' => 'edit_private_ship_modals',
+                'edit_published_posts' => 'edit_published_ship_modals',
+                'create_posts' => 'create_ship_modals',
+            ),
             'map_meta_cap' => true,
             'has_archive' => false,
             'rewrite' => false,
         ));
+    }
+
+    public function ensure_admin_capabilities()
+    {
+        if ('1' === get_option('ship_modal_capabilities_version')) {
+            return;
+        }
+        $capabilities = array(
+            'edit_ship_modal', 'read_ship_modal', 'delete_ship_modal',
+            'edit_ship_modals', 'edit_others_ship_modals', 'publish_ship_modals',
+            'read_private_ship_modals', 'delete_ship_modals', 'delete_private_ship_modals',
+            'delete_published_ship_modals', 'delete_others_ship_modals',
+            'edit_private_ship_modals', 'edit_published_ship_modals', 'create_ship_modals',
+        );
+        foreach (wp_roles()->roles as $role_name => $role_data) {
+            $role = get_role($role_name);
+            if (! $role) {
+                continue;
+            }
+            foreach ($capabilities as $capability) {
+                if ('administrator' === $role_name) {
+                    $role->add_cap($capability);
+                } else {
+                    $role->remove_cap($capability);
+                }
+            }
+        }
+        update_option('ship_modal_capabilities_version', '1', false);
     }
 
     public function register_meta_boxes()
@@ -107,7 +152,7 @@ final class Ship_Modal
     {
         check_ajax_referer('ship_modal_target_search', 'nonce');
         $modal_post_id = isset($_POST['modal_post_id']) ? absint($_POST['modal_post_id']) : 0;
-        if (! ($modal_post_id && current_user_can('edit_post', $modal_post_id)) && ! current_user_can('edit_posts') && ! current_user_can('edit_pages') && ! current_user_can('manage_options')) {
+        if (! current_user_can('manage_options') || ($modal_post_id && ! current_user_can('edit_post', $modal_post_id))) {
             wp_send_json_error(array('message' => '権限がありません。'), 403);
         }
         $search = isset($_POST['q']) ? sanitize_text_field(wp_unslash($_POST['q'])) : '';
@@ -382,7 +427,7 @@ final class Ship_Modal
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
             return;
         }
-        if (! current_user_can('edit_post', $post_id)) {
+        if (! current_user_can('manage_options') || ! current_user_can('edit_post', $post_id)) {
             return;
         }
 
