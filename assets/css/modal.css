@@ -62,6 +62,7 @@
 .ship-modal__content{
   max-height:calc(100dvh - 32px);
   overscroll-behavior:contain;
+  clip-path:inset(0 round var(--ship-modal-radius,0px));
 }
 .ship-modal__dialog{overscroll-behavior:contain}
 .ship-modal--side .ship-modal__content{max-height:calc(100dvh - 48px)}
