@@ -770,7 +770,7 @@ final class Ship_Modal
             return '';
         }
         // モーダルは初期状態が hidden のため、lazy + sizes=auto の仮サイズ計算を使わず実寸を確定させる。
-        $image = wp_get_attachment_image($image_id, 'full', false, array('class' => 'ship-modal__image', 'alt' => $alt, 'loading' => 'eager'));
+        $image = wp_get_attachment_image($image_id, 'full', false, array('class' => 'ship-modal__image', 'alt' => $alt, 'loading' => 'eager', 'fetchpriority' => 'low'));
         if (! $image) {
             return '';
         }
