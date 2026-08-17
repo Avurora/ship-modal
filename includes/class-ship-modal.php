@@ -259,6 +259,19 @@ final class Ship_Modal
         }
         $buttons = $this->meta($post->ID, 'buttons', array());
         $pages = $this->meta($post->ID, 'pages', array());
+        $form_state_key = 'ship_modal_form_' . get_current_user_id() . '_' . $post->ID;
+        $form_state = get_transient($form_state_key);
+        if (is_array($form_state)) {
+            delete_transient($form_state_key);
+            $type = isset($form_state['type']) ? $form_state['type'] : $type;
+            $html = isset($form_state['html']) ? $form_state['html'] : $html;
+            $heading = isset($form_state['heading']) ? $form_state['heading'] : $heading;
+            $body = isset($form_state['body']) ? $form_state['body'] : $body;
+            $image_id = isset($form_state['image_id']) ? absint($form_state['image_id']) : $image_id;
+            $link_url = isset($form_state['link_url']) ? $form_state['link_url'] : $link_url;
+            $buttons = isset($form_state['buttons']) && is_array($form_state['buttons']) ? $form_state['buttons'] : $buttons;
+            $pages = isset($form_state['pages']) && is_array($form_state['pages']) ? $form_state['pages'] : $pages;
+        }
         if (! is_array($pages) || ! $pages) {
             $pages = array(array());
         }
@@ -500,9 +513,21 @@ final class Ship_Modal
         }
 
         if ($errors) {
+            set_transient('ship_modal_form_' . get_current_user_id() . '_' . $post_id, array(
+                'type' => $type,
+                'html' => $html,
+                'heading' => $heading,
+                'body' => $body,
+                'image_id' => $image_id,
+                'link_url' => isset($_POST['ship_modal_link_url']) ? esc_url_raw(wp_unslash($_POST['ship_modal_link_url'])) : $this->meta($post_id, 'link_url', ''),
+                'buttons' => isset($_POST['ship_modal_buttons']) && is_array($_POST['ship_modal_buttons']) ? wp_unslash($_POST['ship_modal_buttons']) : $buttons,
+                'pages' => isset($_POST['ship_modal_pages']) && is_array($_POST['ship_modal_pages']) ? wp_unslash($_POST['ship_modal_pages']) : $pages,
+            ), 60);
             set_transient('ship_modal_errors_' . get_current_user_id() . '_' . $post_id, $errors, 60);
             return;
         }
+
+        delete_transient('ship_modal_form_' . get_current_user_id() . '_' . $post_id);
 
         foreach (array('link_url', 'trigger_text', 'start_at', 'end_at') as $field) {
             $value = isset($_POST['ship_modal_' . $field]) ? wp_unslash($_POST['ship_modal_' . $field]) : '';
