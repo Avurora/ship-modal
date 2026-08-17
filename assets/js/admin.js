@@ -1,6 +1,12 @@
 (function ($) {
   'use strict';
 
+  var adminConfig = window.ShipModalAdminConfig || {};
+
+  function currentScope() {
+    return $('input[name="ship_modal_scope"]:checked').val() || 'all';
+  }
+
   function refreshRows() {
     var type = $('#ship-modal-content_type').val();
     $('.ship-modal-legacy-html-row').toggle(type === 'html');
@@ -9,7 +15,7 @@
     $('.ship-modal-hybrid-image-row').toggle(type === 'hybrid');
     $('.ship-modal-buttons-row').toggle(type === 'hybrid' || type === 'text');
     $('.ship-modal-pages-row').toggle(type === 'pager');
-    $('.ship-modal-target-pages-row').toggle($('#ship-modal-scope').val() === 'selected');
+    $('.ship-modal-target-picker').toggle(currentScope() === 'selected');
     $('#ship-modal-body').attr('maxlength', type === 'text' ? '120' : '80');
     $('.ship-modal-delay-row').toggle($('#ship-modal-trigger').val() === 'auto');
     $('.ship-modal-trigger-text-row').toggle($('#ship-modal-trigger').val() === 'manual');
@@ -29,11 +35,88 @@
     $counter.toggleClass('is-over', value.length > max);
   }
 
+  function updateTargetCount() {
+    var count = $('#ship-modal-target-selected .ship-modal-target-chip').length;
+    $('.ship-modal-target-count').text(count ? count + '件選択中' : '未選択');
+  }
+
+  function targetIsSelected(id) {
+    return $('#ship-modal-target-selected .ship-modal-target-chip[data-target-id="' + id + '"]').length > 0;
+  }
+
+  function showTargetMessage(message) {
+    $('#ship-modal-target-results').empty().append($('<p class="description"></p>').text(message));
+  }
+
+  function addTarget(id, label) {
+    if (!id || targetIsSelected(id)) return;
+    var $chip = $('<span class="ship-modal-target-chip"></span>').attr('data-target-id', id);
+    $('<input type="hidden" name="ship_modal_target_ids[]">').val(id).appendTo($chip);
+    $('<span></span>').text(label).appendTo($chip);
+    $('<button type="button" class="ship-modal-target-remove" aria-label="選択を解除">×</button>').appendTo($chip);
+    $('#ship-modal-target-selected').append($chip);
+    updateTargetCount();
+  }
+
+  function searchTargets() {
+    var query = $.trim($('#ship-modal-target-search').val() || '');
+    var postType = $('#ship-modal-target-post-type').val() || '';
+    if (query.length < 2) {
+      showTargetMessage('ページ名・記事タイトルを2文字以上入力してください。');
+      return;
+    }
+    if (!adminConfig.ajaxUrl || !adminConfig.targetSearchNonce) {
+      showTargetMessage('検索設定を読み込めませんでした。ページを再読み込みしてください。');
+      return;
+    }
+    showTargetMessage('検索中…');
+    $.post(adminConfig.ajaxUrl, { action: 'ship_modal_search_targets', nonce: adminConfig.targetSearchNonce, q: query, post_type: postType })
+      .done(function (response) {
+        var $results = $('#ship-modal-target-results').empty();
+        if (!response || !response.success || !response.data || !response.data.length) {
+          showTargetMessage('該当する公開ページがありません。');
+          return;
+        }
+        response.data.forEach(function (item) {
+          var id = String(item.id);
+          var label = '[' + item.type + '] ' + item.title;
+          var $row = $('<div class="ship-modal-target-result"></div>');
+          $('<span></span>').text(label).appendTo($row);
+          var $button = $('<button type="button" class="button button-small">＋追加</button>').data({ targetId: id, targetLabel: label });
+          if (targetIsSelected(id)) $button.prop('disabled', true).text('選択済み');
+          $row.append($button).appendTo($results);
+        });
+      })
+      .fail(function () { showTargetMessage('検索に失敗しました。もう一度お試しください。'); });
+  }
+
   $(function () {
     refreshRows();
     $('[maxlength]').each(function () { updateCounter(this); });
     $(document).on('input', '[maxlength]', function () { updateCounter(this); });
-    $('#ship-modal-content_type, #ship-modal-trigger, #ship-modal-scope').on('change', refreshRows);
+    $('#ship-modal-content_type, #ship-modal-trigger, #ship-modal-target-post-type').on('change', refreshRows);
+    $('input[name="ship_modal_scope"]').on('change', refreshRows);
+    updateTargetCount();
+    var targetSearchTimer;
+    $('#ship-modal-target-search').on('input', function () {
+      window.clearTimeout(targetSearchTimer);
+      targetSearchTimer = window.setTimeout(searchTargets, 250);
+    });
+    $('#ship-modal-target-post-type').on('change', searchTargets);
+    $(document).on('click', '.ship-modal-target-result .button', function () {
+      addTarget(String($(this).data('targetId')), String($(this).data('targetLabel')));
+      $(this).prop('disabled', true).text('選択済み');
+    });
+    $(document).on('click', '.ship-modal-target-remove', function () {
+      $(this).closest('.ship-modal-target-chip').remove();
+      updateTargetCount();
+    });
+    $('#ship-modal-target-clear').on('click', function (event) {
+      event.preventDefault();
+      $('#ship-modal-target-selected').empty();
+      updateTargetCount();
+      $('#ship-modal-target-results .button').prop('disabled', false).text('＋追加');
+    });
     var frame;
     function selectImage(targetId, previewId) {
       var currentFrame = frame;

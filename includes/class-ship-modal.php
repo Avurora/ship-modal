@@ -30,6 +30,7 @@ final class Ship_Modal
         add_shortcode('ship_modal', array($this, 'shortcode'));
         add_action('wp_ajax_ship_modal_event', array($this, 'record_event'));
         add_action('wp_ajax_nopriv_ship_modal_event', array($this, 'record_event'));
+        add_action('wp_ajax_ship_modal_search_targets', array($this, 'search_targets'));
     }
 
     public static function activate()
@@ -102,19 +103,37 @@ final class Ship_Modal
         return $types;
     }
 
-    private function targetable_posts()
+    public function search_targets()
     {
-        $post_types = array_keys($this->targetable_post_types());
-        if (! $post_types) {
-            return array();
+        check_ajax_referer('ship_modal_target_search', 'nonce');
+        if (! current_user_can('edit_posts')) {
+            wp_send_json_error(array('message' => '権限がありません。'), 403);
         }
-        return get_posts(array(
+        $search = isset($_POST['q']) ? sanitize_text_field(wp_unslash($_POST['q'])) : '';
+        if (mb_strlen($search) < 2) {
+            wp_send_json_success(array());
+        }
+        $types = $this->targetable_post_types();
+        $requested_type = isset($_POST['post_type']) ? sanitize_key(wp_unslash($_POST['post_type'])) : '';
+        $post_types = $requested_type && isset($types[$requested_type]) ? array($requested_type) : array_keys($types);
+        $posts = get_posts(array(
             'post_type' => $post_types,
             'post_status' => 'publish',
-            'posts_per_page' => -1,
-            'orderby' => array('post_type' => 'ASC', 'title' => 'ASC'),
-            'order' => 'ASC',
+            'posts_per_page' => 30,
+            's' => $search,
+            'orderby' => 'relevance',
+            'order' => 'DESC',
         ));
+        $results = array();
+        foreach ($posts as $target_post) {
+            $type = get_post_type($target_post);
+            $results[] = array(
+                'id' => (int) $target_post->ID,
+                'title' => get_the_title($target_post),
+                'type' => isset($types[$type]) ? $types[$type]->labels->singular_name : $type,
+            );
+        }
+        wp_send_json_success($results);
     }
 
     private function render_page_row($index, $page = array())
@@ -233,16 +252,35 @@ final class Ship_Modal
         $close_overlay = $this->meta($post->ID, 'close_overlay', '1');
         $trigger_text = $this->meta($post->ID, 'trigger_text', 'キャンペーン詳細を見る');
         $target_ids = array_values(array_filter(array_map('absint', (array) $this->meta($post->ID, 'target_ids', array()))));
-        $targetable_posts = $this->targetable_posts();
         $targetable_types = $this->targetable_post_types();
+        $selected_posts = $target_ids ? get_posts(array(
+            'post__in' => $target_ids,
+            'post_type' => array_keys($targetable_types),
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => 'post__in',
+        )) : array();
         ?>
         <table class="form-table ship-modal-form-table">
-            <tr><th><label for="ship-modal-scope">表示範囲</label></th><td><?php $this->select('scope', $scope, array('all' => '全ページ', 'front' => 'トップページのみ', 'singular' => '投稿・固定ページ（全て）', 'selected' => '指定したページのみ', 'shortcode' => 'ショートコードのみ')); ?></td></tr>
-            <tr class="ship-modal-target-pages-row"><th><label for="ship-modal-target_ids">表示するページ</label></th><td><select name="ship_modal_target_ids[]" id="ship-modal-target_ids" class="widefat" multiple size="8">
-                <?php foreach ($targetable_posts as $target_post) : $target_type = get_post_type($target_post); $target_type_label = isset($targetable_types[$target_type]) ? $targetable_types[$target_type]->labels->singular_name : $target_type; ?>
-                    <option value="<?php echo esc_attr($target_post->ID); ?>" <?php selected(in_array((int) $target_post->ID, $target_ids, true), true); ?>><?php echo esc_html('[' . $target_type_label . '] ' . get_the_title($target_post)); ?></option>
-                <?php endforeach; ?>
-            </select><p class="description">Ctrl / ⌘キーで複数選択できます。公開中の固定ページ・投稿・公開カスタム投稿タイプを取得しています。</p></td></tr>
+            <tr><th>表示対象</th><td>
+                <div class="ship-modal-scope-options" role="radiogroup" aria-label="表示対象">
+                    <?php foreach (array('all' => '全ページ', 'front' => 'トップページのみ', 'singular' => '投稿・固定ページ（全て）', 'selected' => '指定ページのみ', 'shortcode' => 'ショートコードのみ') as $scope_value => $scope_label) : ?>
+                        <label><input type="radio" name="ship_modal_scope" value="<?php echo esc_attr($scope_value); ?>" <?php checked($scope, $scope_value); ?>> <?php echo esc_html($scope_label); ?></label>
+                    <?php endforeach; ?>
+                </div>
+                <div class="ship-modal-target-picker">
+                    <div class="ship-modal-target-picker__heading"><strong>指定ページを追加</strong><span class="ship-modal-target-count" aria-live="polite"></span></div>
+                    <div class="ship-modal-target-search-row"><input type="search" id="ship-modal-target-search" class="widefat" placeholder="ページ名・記事タイトルで検索（2文字以上）"><select id="ship-modal-target-post-type"><option value="">すべての種類</option><?php foreach ($targetable_types as $target_type => $target_type_object) : ?><option value="<?php echo esc_attr($target_type); ?>"><?php echo esc_html($target_type_object->labels->name); ?></option><?php endforeach; ?></select></div>
+                    <div id="ship-modal-target-results" class="ship-modal-target-results"><p class="description">検索結果から表示対象を追加できます。</p></div>
+                    <div class="ship-modal-target-picker__selected-heading"><strong>選択中</strong><button type="button" class="button-link" id="ship-modal-target-clear">すべて解除</button></div>
+                    <div id="ship-modal-target-selected" class="ship-modal-target-selected">
+                        <?php foreach ($selected_posts as $selected_post) : $selected_type = get_post_type($selected_post); $selected_type_label = isset($targetable_types[$selected_type]) ? $targetable_types[$selected_type]->labels->singular_name : $selected_type; ?>
+                            <span class="ship-modal-target-chip" data-target-id="<?php echo esc_attr($selected_post->ID); ?>"><input type="hidden" name="ship_modal_target_ids[]" value="<?php echo esc_attr($selected_post->ID); ?>"><span><?php echo esc_html('[' . $selected_type_label . '] ' . get_the_title($selected_post)); ?></span><button type="button" class="ship-modal-target-remove" aria-label="選択を解除">×</button></span>
+                        <?php endforeach; ?>
+                    </div>
+                    <p class="description">公開中のページ・記事だけが検索対象です。指定ページのみを選んだ場合、ここで選択したページにだけ表示されます。</p>
+                </div>
+            </td></tr>
             <tr><th><label for="ship-modal-trigger">起動方法</label></th><td><?php $this->select('trigger', $trigger, array('auto' => '自動表示', 'manual' => 'ボタンから表示')); ?></td></tr>
             <tr class="ship-modal-delay-row"><th><label for="ship-modal-delay">表示までの秒数</label></th><td><input type="number" min="0" max="120" step="1" class="small-text" name="ship_modal_delay" id="ship-modal-delay" value="<?php echo esc_attr($delay); ?>"> 秒</td></tr>
             <tr class="ship-modal-trigger-text-row"><th><label for="ship-modal-trigger_text">ボタン文言</label></th><td><input type="text" class="widefat" name="ship_modal_trigger_text" id="ship-modal-trigger_text" value="<?php echo esc_attr($trigger_text); ?>"></td></tr>
@@ -469,6 +507,10 @@ final class Ship_Modal
         }
         wp_enqueue_media();
         wp_enqueue_script('ship-modal-admin', SHIP_MODAL_URL . 'assets/js/admin.js', array('jquery', 'media-views'), SHIP_MODAL_VERSION, true);
+        wp_localize_script('ship-modal-admin', 'ShipModalAdminConfig', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'targetSearchNonce' => wp_create_nonce('ship_modal_target_search'),
+        ));
         wp_enqueue_style('ship-modal-admin', SHIP_MODAL_URL . 'assets/css/admin.css', array(), SHIP_MODAL_VERSION);
     }
 
