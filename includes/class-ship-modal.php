@@ -268,9 +268,9 @@ final class Ship_Modal
         ?>
         <p class="description">HTML、画像バナー、画像＋HTML、複数ページのページャーから選べます。ページャーは各ページに画像とHTMLを設定できます。</p>
         <table class="form-table ship-modal-form-table">
-            <tr><th><label for="ship-modal-content_type">フレーム</label></th><td><?php $this->select('content_type', $type, array('html' => '旧：自由HTML', 'image' => '画像のみ', 'hybrid' => '画像＋ボタン', 'text' => 'テキスト＋ボタン', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
+            <tr><th><label for="ship-modal-content_type">フレーム</label></th><td><?php $this->select('content_type', $type, array('html' => '旧：自由HTML', 'image' => '画像のみ', 'hybrid' => '画像＋テキスト（ボタン任意）', 'text' => 'テキスト（ボタン任意）', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
             <tr class="ship-modal-legacy-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
-            <tr class="ship-modal-copy-row"><th><label for="ship-modal-heading">見出し</label></th><td><input type="text" class="widefat" name="ship_modal_heading" id="ship-modal-heading" value="<?php echo esc_attr($heading); ?>" maxlength="24" placeholder="24文字以内"><p class="description">画像＋ボタン：任意 / テキスト＋ボタン：必須</p></td></tr>
+            <tr class="ship-modal-copy-row"><th><label for="ship-modal-heading">見出し</label></th><td><input type="text" class="widefat" name="ship_modal_heading" id="ship-modal-heading" value="<?php echo esc_attr($heading); ?>" maxlength="24" placeholder="24文字以内"><p class="description">画像＋テキスト：任意 / テキスト：必須</p></td></tr>
             <tr class="ship-modal-copy-row"><th><label for="ship-modal-body">本文</label></th><td><textarea class="large-text" rows="5" name="ship_modal_body" id="ship-modal-body" maxlength="120" placeholder="画像＋ボタン：80文字以内 / テキスト＋ボタン：120文字以内"><?php echo esc_textarea($body); ?></textarea><p class="description">本文はレイアウト用HTML不可。文字装飾は保存後も崩れない範囲に限定します。</p></td></tr>
             <tr class="ship-modal-single-image-row">
                 <th>画像</th>
@@ -283,7 +283,7 @@ final class Ship_Modal
             </tr>
             <tr class="ship-modal-single-image-row"><th><label for="ship-modal-link_url">クリック先URL</label></th><td><input type="url" class="widefat" name="ship_modal_link_url" id="ship-modal-link_url" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/"><br><label><input type="checkbox" name="ship_modal_link_new_tab" value="1" <?php checked($link_new_tab, true); ?>> 別タブで開く</label><p class="description">空欄なら画像はリンクになりません。</p></td></tr>
             <tr class="ship-modal-hybrid-image-row"><th><label for="ship-modal-image_position">画像の位置</label></th><td><?php $this->select('image_position', $image_position, array('top' => '上', 'left' => '左', 'right' => '右')); ?></td></tr>
-            <tr class="ship-modal-buttons-row"><th>ボタン</th><td><p class="description">画像＋ボタン：1〜3個 / テキスト＋ボタン：1〜3個。文言の改行は&lt;br&gt;で指定できます（表示文字数12文字以内）。「閉じる」を選んだボタンはURL不要です。</p><?php $this->render_button_fields($buttons, 3, 'ship_modal_buttons'); ?></td></tr>
+            <tr class="ship-modal-buttons-row"><th>ボタン</th><td><p class="description">任意・最大3個。文言の改行は&lt;br&gt;で指定できます（表示文字数12文字以内）。「閉じる」を選んだボタンはURL不要です。</p><?php $this->render_button_fields($buttons, 3, 'ship_modal_buttons'); ?></td></tr>
             <tr class="ship-modal-pages-row"><th>ページ</th><td><div id="ship-modal-pages"><?php foreach ($pages as $index => $page) { $this->render_page_row($index, is_array($page) ? $page : array()); } ?></div><p><button type="button" class="button" id="ship-modal-add-page">＋ ページを追加</button></p><p class="description">各ページは画像とHTMLを個別に設定できます。</p></td></tr>
             <tr><th><label for="ship-modal-design">デザイン</label></th><td><?php $this->select('design', $design, array('center' => '中央カード', 'bottom' => '画面下部バナー', 'side' => '右下ポップアップ', 'fullscreen' => 'フルスクリーン')); ?></td></tr>
             <tr><th><label for="ship-modal-border_radius">角丸（border-radius）</label></th><td><input type="number" min="0" max="48" step="1" class="small-text" name="ship_modal_border_radius" id="ship-modal-border_radius" value="<?php echo esc_attr($border_radius); ?>"> px <p class="description">0〜48px。0なら角丸なし。</p></td></tr>
@@ -432,7 +432,7 @@ final class Ship_Modal
         }
 
         $errors = array();
-        $type = isset($_POST['ship_modal_content_type']) ? sanitize_key(wp_unslash($_POST['ship_modal_content_type'])) : 'html';
+        $type = isset($_POST['ship_modal_content_type']) ? sanitize_key(wp_unslash($_POST['ship_modal_content_type'])) : $this->meta($post_id, 'content_type', 'image');
         $allowed_types = array('html', 'image', 'hybrid', 'text', 'pager');
         if (! in_array($type, $allowed_types, true)) {
             $type = 'html';
@@ -458,20 +458,14 @@ final class Ship_Modal
         }
         if ('hybrid' === $type) {
             if (! $image_id) {
-                $errors[] = '画像＋ボタンフレームは画像が必須です。';
+                $errors[] = '画像＋テキストフレームは画像が必須です。';
             }
             $this->validate_text($heading, '見出し', 24, $errors);
             $this->validate_text($body, '本文', 80, $errors);
-            if (! $buttons) {
-                $errors[] = '画像＋ボタンフレームはボタンを1個以上設定してください。';
-            }
         }
         if ('text' === $type) {
             $this->validate_text($heading, '見出し', 24, $errors, true);
             $this->validate_text($body, '本文', 120, $errors);
-            if (! $buttons) {
-                $errors[] = 'テキスト＋ボタンフレームはボタンを1個以上設定してください。';
-            }
         }
 
         $pages = array();
