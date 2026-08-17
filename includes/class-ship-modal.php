@@ -338,6 +338,11 @@ final class Ship_Modal
         $border_radius = isset($_POST['ship_modal_border_radius']) ? min(48, max(0, absint($_POST['ship_modal_border_radius']))) : 0;
         $padding = isset($_POST['ship_modal_padding']) ? min(64, max(0, absint($_POST['ship_modal_padding']))) : 20;
         $max_width = isset($_POST['ship_modal_max_width']) ? min(1200, max(280, absint($_POST['ship_modal_max_width']))) : 620;
+        $scope = isset($_POST['ship_modal_scope']) ? sanitize_key(wp_unslash($_POST['ship_modal_scope'])) : 'all';
+        $raw_target_ids = isset($_POST['ship_modal_target_ids']) && is_array($_POST['ship_modal_target_ids']) ? $_POST['ship_modal_target_ids'] : array();
+        if ('selected' === $scope && ! array_filter(array_map('absint', wp_unslash($raw_target_ids)))) {
+            $errors[] = '指定ページを1件以上選択してください。';
+        }
 
         if ('image' === $type && ! $image_id) {
             $errors[] = '画像のみフレームは画像が必須です。';
@@ -412,7 +417,6 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_padding', $padding);
         update_post_meta($post_id, '_ship_modal_max_width', $max_width);
         $target_ids = array();
-        $raw_target_ids = isset($_POST['ship_modal_target_ids']) && is_array($_POST['ship_modal_target_ids']) ? $_POST['ship_modal_target_ids'] : array();
         $targetable_types = $this->targetable_post_types();
         foreach (array_unique(array_map('absint', wp_unslash($raw_target_ids))) as $target_id) {
             $target_post = $target_id ? get_post($target_id) : null;
