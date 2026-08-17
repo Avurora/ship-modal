@@ -6,3 +6,4 @@
 .ship-modal-button-field{grid-template-columns:24px minmax(100px,1fr) minmax(140px,1.5fr) 90px 84px}.ship-modal-button-field label{white-space:nowrap;font-size:12px}.ship-modal-button-field label input[type="checkbox"]{width:auto}@media (max-width:782px){.ship-modal-button-field{grid-template-columns:24px 1fr}.ship-modal-button-field label{grid-column:2}}
 .ship-modal-scroll-row{display:none}
 .ship-modal-trigger-style-row{display:none}.ship-modal-form-table input[type="color"]{width:42px;height:32px;padding:2px;vertical-align:middle}
+.ship-modal-button-help{margin:0 0 6px}

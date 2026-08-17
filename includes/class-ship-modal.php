@@ -174,6 +174,7 @@ final class Ship_Modal
     private function render_button_fields($buttons, $max, $prefix)
     {
         $buttons = is_array($buttons) ? array_values($buttons) : array();
+        echo '<p class="description ship-modal-button-help">ボタン文言は表示12文字以内です。文中で改行する場合は <code>&lt;br&gt;</code> を入力してください。</p>';
         for ($index = 0; $index < $max; $index++) {
             $button = isset($buttons[$index]) && is_array($buttons[$index]) ? $buttons[$index] : array();
             $label = isset($button['label']) ? $button['label'] : '';
