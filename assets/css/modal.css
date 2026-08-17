@@ -26,6 +26,7 @@
   width:auto!important;
   max-width:100%!important;
   height:auto;
+  contain-intrinsic-size:none!important;
   margin-right:auto;
   margin-left:auto;
 }
