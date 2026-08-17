@@ -16,7 +16,7 @@ define('SHIP_MODAL_VERSION', '0.1.0');
 define('SHIP_MODAL_FILE', __FILE__);
 define('SHIP_MODAL_DIR', plugin_dir_path(__FILE__));
 define('SHIP_MODAL_URL', plugin_dir_url(__FILE__));
-define('SHIP_MODAL_REPOSITORY', 'https://github.com/aurora-ship-sato/ship-modal');
+define('SHIP_MODAL_REPOSITORY', 'https://github.com/Avurora/ship-modal');
 
 require_once SHIP_MODAL_DIR . 'includes/class-ship-modal.php';
 
