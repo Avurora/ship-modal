@@ -119,25 +119,34 @@
     });
     var frame;
     function selectImage(targetId, previewId) {
+      if (!window.wp || typeof window.wp.media !== 'function') {
+        window.alert('メディアライブラリを読み込めませんでした。ページを再読み込みしてください。');
+        return;
+      }
       var currentFrame = frame;
       if (currentFrame) {
         currentFrame.off('select.shipModal');
       }
-      currentFrame = wp.media({ title: 'モーダル画像を選択', button: { text: 'この画像を使用' }, multiple: false, library: { type: 'image' } });
+      currentFrame = window.wp.media({ title: 'モーダル画像を選択', button: { text: 'この画像を使用' }, multiple: false, library: { type: 'image' } });
       frame = currentFrame;
       currentFrame.on('select.shipModal', function () {
-        var attachment = currentFrame.state().get('selection').first().toJSON();
-        $('#' + targetId).val(attachment.id);
+        var selected = currentFrame.state().get('selection').first();
+        if (!selected) return;
+        var attachment = selected.toJSON();
+        if (!attachment.id || !attachment.url) return;
+        $('#' + targetId).val(attachment.id).trigger('change');
         $('#' + previewId).html('<img src="' + attachment.url.replace(/"/g, '&quot;') + '" alt="" style="max-width:100%;height:auto;">');
       });
       currentFrame.open();
     }
-    $('#ship-modal-select-image').on('click', function (event) {
+    $(document).off('click.shipModalImage', '#ship-modal-select-image').on('click.shipModalImage', '#ship-modal-select-image', function (event) {
       event.preventDefault();
+      event.stopPropagation();
       selectImage('ship-modal-image-id', 'ship-modal-image-preview');
     });
-    $('#ship-modal-remove-image').on('click', function (event) {
+    $(document).off('click.shipModalImageRemove', '#ship-modal-remove-image').on('click.shipModalImageRemove', '#ship-modal-remove-image', function (event) {
       event.preventDefault();
+      event.stopPropagation();
       $('#ship-modal-image-id').val('');
       $('#ship-modal-image-preview').empty();
     });
