@@ -22,6 +22,7 @@ final class Ship_Modal
         add_action('add_meta_boxes', array($this, 'register_meta_boxes'));
         add_action('save_post_ship_modal', array($this, 'save_modal'), 10, 2);
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
+        add_action('admin_notices', array($this, 'render_validation_notice'));
         add_filter('manage_ship_modal_posts_columns', array($this, 'admin_columns'));
         add_action('manage_ship_modal_posts_custom_column', array($this, 'render_admin_column'), 10, 2);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_front_assets'));
@@ -96,8 +97,10 @@ final class Ship_Modal
     {
         $image_id = isset($page['image_id']) ? absint($page['image_id']) : 0;
         $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
-        $html = isset($page['html']) ? $page['html'] : '';
+        $heading = isset($page['heading']) ? $page['heading'] : '';
+        $body = isset($page['body']) ? $page['body'] : (isset($page['html']) ? wp_strip_all_tags($page['html']) : '');
         $link_url = isset($page['link_url']) ? $page['link_url'] : '';
+        $buttons = isset($page['buttons']) && is_array($page['buttons']) ? $page['buttons'] : array();
         ?>
         <div class="ship-modal-page-row" data-page-index="<?php echo esc_attr($index); ?>">
             <div class="ship-modal-page-row__header"><strong>ページ <?php echo esc_html(is_numeric($index) ? ((int) $index + 1) : '__NUMBER__'); ?></strong><button type="button" class="button-link-delete ship-modal-remove-page">このページを削除</button></div>
@@ -108,14 +111,38 @@ final class Ship_Modal
                     <button type="button" class="button ship-modal-page-select-image" data-target-id="ship-modal-page-image-<?php echo esc_attr($index); ?>" data-target-preview="ship-modal-page-preview-<?php echo esc_attr($index); ?>">画像を選択</button>
                 </div>
                 <div>
-                    <label>ページ内HTML</label>
-                    <textarea class="large-text" rows="6" name="ship_modal_pages[<?php echo esc_attr($index); ?>][html]"><?php echo esc_textarea($html); ?></textarea>
+                    <label>ページ見出し（必須・20文字）</label>
+                    <input type="text" class="widefat" maxlength="20" name="ship_modal_pages[<?php echo esc_attr($index); ?>][heading]" value="<?php echo esc_attr($heading); ?>">
+                    <label>ページ本文（70文字）</label>
+                    <textarea class="large-text" rows="4" maxlength="70" name="ship_modal_pages[<?php echo esc_attr($index); ?>][body]"><?php echo esc_textarea($body); ?></textarea>
                     <label>画像クリック先URL</label>
                     <input type="url" class="widefat" name="ship_modal_pages[<?php echo esc_attr($index); ?>][link_url]" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/">
+                    <strong class="ship-modal-admin-subheading">ボタン（最大2個）</strong>
+                    <?php $this->render_button_fields($buttons, 2, 'ship_modal_pages[' . $index . '][buttons]'); ?>
                 </div>
             </div>
         </div>
         <?php
+    }
+
+    private function render_button_fields($buttons, $max, $prefix)
+    {
+        $buttons = is_array($buttons) ? array_values($buttons) : array();
+        for ($index = 0; $index < $max; $index++) {
+            $button = isset($buttons[$index]) && is_array($buttons[$index]) ? $buttons[$index] : array();
+            $label = isset($button['label']) ? $button['label'] : '';
+            $url = isset($button['url']) ? $button['url'] : '';
+            $style = isset($button['style']) && in_array($button['style'], array('primary', 'secondary'), true) ? $button['style'] : 'primary';
+            $base = $prefix . '[' . $index . ']';
+            ?>
+            <div class="ship-modal-button-field">
+                <span class="ship-modal-button-field__number"><?php echo esc_html((string) ($index + 1)); ?></span>
+                <input type="text" maxlength="12" name="<?php echo esc_attr($base . '[label]'); ?>" value="<?php echo esc_attr($label); ?>" placeholder="ボタン文言（12文字）">
+                <input type="url" name="<?php echo esc_attr($base . '[url]'); ?>" value="<?php echo esc_attr($url); ?>" placeholder="https://example.com/">
+                <select name="<?php echo esc_attr($base . '[style]'); ?>"><option value="primary" <?php selected($style, 'primary'); ?>>メイン</option><option value="secondary" <?php selected($style, 'secondary'); ?>>サブ</option></select>
+            </div>
+            <?php
+        }
     }
 
     public function render_content_box($post)
@@ -128,6 +155,12 @@ final class Ship_Modal
         $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'large') : '';
         $link_url = $this->meta($post->ID, 'link_url');
         $image_position = $this->meta($post->ID, 'image_position', 'top');
+        $heading = $this->meta($post->ID, 'heading');
+        $body = $this->meta($post->ID, 'body', '');
+        if ($body === '') {
+            $body = wp_strip_all_tags($html);
+        }
+        $buttons = $this->meta($post->ID, 'buttons', array());
         $pages = $this->meta($post->ID, 'pages', array());
         if (! is_array($pages) || ! $pages) {
             $pages = array(array());
@@ -135,8 +168,10 @@ final class Ship_Modal
         ?>
         <p class="description">HTML、画像バナー、画像＋HTML、複数ページのページャーから選べます。ページャーは各ページに画像とHTMLを設定できます。</p>
         <table class="form-table ship-modal-form-table">
-            <tr><th><label for="ship-modal-content_type">コンテンツタイプ</label></th><td><?php $this->select('content_type', $type, array('html' => 'HTML / リッチコンテンツ', 'image' => '画像バナー', 'hybrid' => '画像＋HTML', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
-            <tr class="ship-modal-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
+            <tr><th><label for="ship-modal-content_type">フレーム</label></th><td><?php $this->select('content_type', $type, array('html' => '旧：自由HTML', 'image' => '画像のみ', 'hybrid' => '画像＋ボタン', 'text' => 'テキスト＋ボタン', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
+            <tr class="ship-modal-legacy-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
+            <tr class="ship-modal-copy-row"><th><label for="ship-modal-heading">見出し</label></th><td><input type="text" class="widefat" name="ship_modal_heading" id="ship-modal-heading" value="<?php echo esc_attr($heading); ?>" maxlength="24" placeholder="24文字以内"><p class="description">画像＋ボタン：任意 / テキスト＋ボタン：必須</p></td></tr>
+            <tr class="ship-modal-copy-row"><th><label for="ship-modal-body">本文</label></th><td><textarea class="large-text" rows="5" name="ship_modal_body" id="ship-modal-body" maxlength="120" placeholder="画像＋ボタン：80文字以内 / テキスト＋ボタン：120文字以内"><?php echo esc_textarea($body); ?></textarea><p class="description">本文はレイアウト用HTML不可。文字装飾は保存後も崩れない範囲に限定します。</p></td></tr>
             <tr class="ship-modal-single-image-row">
                 <th>画像</th>
                 <td>
@@ -148,6 +183,7 @@ final class Ship_Modal
             </tr>
             <tr class="ship-modal-single-image-row"><th><label for="ship-modal-link_url">クリック先URL</label></th><td><input type="url" class="widefat" name="ship_modal_link_url" id="ship-modal-link_url" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/"><p class="description">空欄なら画像はリンクになりません。</p></td></tr>
             <tr class="ship-modal-hybrid-image-row"><th><label for="ship-modal-image_position">画像の位置</label></th><td><?php $this->select('image_position', $image_position, array('top' => '上', 'left' => '左', 'right' => '右')); ?></td></tr>
+            <tr class="ship-modal-buttons-row"><th>ボタン</th><td><p class="description">画像＋ボタン：1〜3個 / テキスト＋ボタン：1〜3個</p><?php $this->render_button_fields($buttons, 3, 'ship_modal_buttons'); ?></td></tr>
             <tr class="ship-modal-pages-row"><th>ページ</th><td><div id="ship-modal-pages"><?php foreach ($pages as $index => $page) { $this->render_page_row($index, is_array($page) ? $page : array()); } ?></div><p><button type="button" class="button" id="ship-modal-add-page">＋ ページを追加</button></p><p class="description">各ページは画像とHTMLを個別に設定できます。</p></td></tr>
             <tr><th><label for="ship-modal-design">デザイン</label></th><td><?php $this->select('design', $design, array('center' => '中央カード', 'bottom' => '画面下部バナー', 'side' => '右下ポップアップ', 'fullscreen' => 'フルスクリーン')); ?></td></tr>
         </table>
@@ -192,6 +228,50 @@ final class Ship_Modal
         echo '<p class="description">表示時とリンククリック時をブラウザから計測します。</p>';
     }
 
+    private function normalize_buttons($raw_buttons, $max, $context, &$errors)
+    {
+        $normalized = array();
+        if (! is_array($raw_buttons)) {
+            return $normalized;
+        }
+        foreach (array_slice(wp_unslash($raw_buttons), 0, $max) as $button) {
+            if (! is_array($button)) {
+                continue;
+            }
+            $label = isset($button['label']) ? sanitize_text_field($button['label']) : '';
+            $url = isset($button['url']) ? esc_url_raw($button['url']) : '';
+            $style = isset($button['style']) && in_array($button['style'], array('primary', 'secondary'), true) ? $button['style'] : 'primary';
+            if ($label === '' && $url === '') {
+                continue;
+            }
+            if ($label === '' || $url === '') {
+                $errors[] = $context . 'は文言とURLをセットで入力してください。';
+                continue;
+            }
+            if (mb_strlen($label) > 12) {
+                $errors[] = $context . 'の文言は12文字以内で入力してください。';
+                continue;
+            }
+            if (! preg_match('/^(https?:\\/\\/|tel:|mailto:)/i', $url)) {
+                $errors[] = $context . 'のURL形式が正しくありません。';
+                continue;
+            }
+            $normalized[] = array('label' => $label, 'url' => $url, 'style' => $style);
+        }
+        return $normalized;
+    }
+
+    private function validate_text($value, $label, $max, &$errors, $required = false)
+    {
+        $text = trim(wp_strip_all_tags((string) $value));
+        if ($required && $text === '') {
+            $errors[] = $label . 'は必須です。';
+        } elseif (mb_strlen($text) > $max) {
+            $errors[] = $label . 'は' . $max . '文字以内で入力してください。';
+        }
+        return $text;
+    }
+
     public function save_modal($post_id, $post)
     {
         if (! isset($_POST['ship_modal_nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ship_modal_nonce'])), 'ship_modal_save')) {
@@ -203,32 +283,91 @@ final class Ship_Modal
         if (! current_user_can('edit_post', $post_id)) {
             return;
         }
+
+        $errors = array();
+        $type = isset($_POST['ship_modal_content_type']) ? sanitize_key(wp_unslash($_POST['ship_modal_content_type'])) : 'html';
+        $allowed_types = array('html', 'image', 'hybrid', 'text', 'pager');
+        if (! in_array($type, $allowed_types, true)) {
+            $type = 'html';
+        }
+        $heading = isset($_POST['ship_modal_heading']) ? sanitize_text_field(wp_unslash($_POST['ship_modal_heading'])) : '';
+        $body_raw = isset($_POST['ship_modal_body']) ? wp_unslash($_POST['ship_modal_body']) : '';
+        $body = wp_kses($body_raw, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true)));
+        $html = isset($_POST['ship_modal_html']) ? wp_unslash($_POST['ship_modal_html']) : '';
+        $image_id = isset($_POST['ship_modal_image_id']) ? absint($_POST['ship_modal_image_id']) : 0;
+        $buttons = $this->normalize_buttons(isset($_POST['ship_modal_buttons']) ? $_POST['ship_modal_buttons'] : array(), 3, 'ボタン', $errors);
+
+        if ('image' === $type && ! $image_id) {
+            $errors[] = '画像のみフレームは画像が必須です。';
+        }
+        if ('hybrid' === $type) {
+            if (! $image_id) {
+                $errors[] = '画像＋ボタンフレームは画像が必須です。';
+            }
+            $this->validate_text($heading, '見出し', 24, $errors);
+            $this->validate_text($body, '本文', 80, $errors);
+            if (! $buttons) {
+                $errors[] = '画像＋ボタンフレームはボタンを1個以上設定してください。';
+            }
+        }
+        if ('text' === $type) {
+            $this->validate_text($heading, '見出し', 24, $errors, true);
+            $this->validate_text($body, '本文', 120, $errors);
+            if (! $buttons) {
+                $errors[] = 'テキスト＋ボタンフレームはボタンを1個以上設定してください。';
+            }
+        }
+
+        $pages = array();
+        if (isset($_POST['ship_modal_pages']) && is_array($_POST['ship_modal_pages'])) {
+            foreach (array_values(wp_unslash($_POST['ship_modal_pages'])) as $index => $page) {
+                if (! is_array($page)) {
+                    continue;
+                }
+                $page_heading = isset($page['heading']) ? sanitize_text_field($page['heading']) : '';
+                $page_body = isset($page['body']) ? wp_kses($page['body'], array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true))) : '';
+                $page_buttons = $this->normalize_buttons(isset($page['buttons']) ? $page['buttons'] : array(), 2, 'ページ' . ((int) $index + 1) . 'のボタン', $errors);
+                $has_page_content = $page_heading !== '' || trim(wp_strip_all_tags($page_body)) !== '' || ! empty($page['image_id']);
+                if (! $has_page_content) {
+                    continue;
+                }
+                $this->validate_text($page_heading, 'ページ' . ((int) $index + 1) . 'の見出し', 20, $errors, true);
+                $this->validate_text($page_body, 'ページ' . ((int) $index + 1) . 'の本文', 70, $errors);
+                $pages[] = array(
+                    'image_id' => isset($page['image_id']) ? absint($page['image_id']) : 0,
+                    'heading' => $page_heading,
+                    'body' => $page_body,
+                    'link_url' => isset($page['link_url']) ? esc_url_raw($page['link_url']) : '',
+                    'buttons' => $page_buttons,
+                );
+            }
+        }
+        if ('pager' === $type && count($pages) < 2) {
+            $errors[] = 'ページャーは2ページ以上設定してください。';
+        } elseif ('pager' === $type && count($pages) > 5) {
+            $errors[] = 'ページャーは5ページ以内で設定してください。';
+        }
+
+        if ($errors) {
+            set_transient('ship_modal_errors_' . get_current_user_id() . '_' . $post_id, $errors, 60);
+            return;
+        }
+
         foreach (array('link_url', 'trigger_text', 'start_at', 'end_at') as $field) {
             $value = isset($_POST['ship_modal_' . $field]) ? wp_unslash($_POST['ship_modal_' . $field]) : '';
             update_post_meta($post_id, '_ship_modal_' . $field, sanitize_text_field($value));
         }
-        $html = isset($_POST['ship_modal_html']) ? wp_unslash($_POST['ship_modal_html']) : '';
         update_post_meta($post_id, '_ship_modal_html', wp_kses_post($html));
-        update_post_meta($post_id, '_ship_modal_image_id', isset($_POST['ship_modal_image_id']) ? absint($_POST['ship_modal_image_id']) : 0);
+        update_post_meta($post_id, '_ship_modal_heading', $heading);
+        update_post_meta($post_id, '_ship_modal_body', $body);
+        update_post_meta($post_id, '_ship_modal_buttons', $buttons);
+        update_post_meta($post_id, '_ship_modal_image_id', $image_id);
         update_post_meta($post_id, '_ship_modal_delay', isset($_POST['ship_modal_delay']) ? min(120, max(0, absint($_POST['ship_modal_delay']))) : 2);
         update_post_meta($post_id, '_ship_modal_show_close', isset($_POST['ship_modal_show_close']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_close_overlay', isset($_POST['ship_modal_close_overlay']) ? '1' : '0');
-        $pages = array();
-        if (isset($_POST['ship_modal_pages']) && is_array($_POST['ship_modal_pages'])) {
-            foreach (wp_unslash($_POST['ship_modal_pages']) as $page) {
-                if (! is_array($page)) {
-                    continue;
-                }
-                $pages[] = array(
-                    'image_id' => isset($page['image_id']) ? absint($page['image_id']) : 0,
-                    'html' => isset($page['html']) ? wp_kses_post($page['html']) : '',
-                    'link_url' => isset($page['link_url']) ? esc_url_raw($page['link_url']) : '',
-                );
-            }
-        }
         update_post_meta($post_id, '_ship_modal_pages', $pages);
         $allowed = array(
-            'content_type' => array('html', 'image', 'hybrid', 'pager'),
+            'content_type' => $allowed_types,
             'image_position' => array('top', 'left', 'right'),
             'design' => array('center', 'bottom', 'side', 'fullscreen'),
             'scope' => array('all', 'front', 'singular', 'shortcode'),
@@ -239,6 +378,24 @@ final class Ship_Modal
             $value = isset($_POST['ship_modal_' . $field]) ? sanitize_key(wp_unslash($_POST['ship_modal_' . $field])) : '';
             update_post_meta($post_id, '_ship_modal_' . $field, in_array($value, $values, true) ? $value : reset($values));
         }
+    }
+
+    public function render_validation_notice()
+    {
+        if (empty($_GET['post'])) {
+            return;
+        }
+        $key = 'ship_modal_errors_' . get_current_user_id() . '_' . absint($_GET['post']);
+        $errors = get_transient($key);
+        if (! is_array($errors) || ! $errors) {
+            return;
+        }
+        delete_transient($key);
+        echo '<div class="notice notice-error"><p><strong>モーダルを保存できませんでした。</strong></p><ul>';
+        foreach ($errors as $error) {
+            echo '<li>' . esc_html($error) . '</li>';
+        }
+        echo '</ul></div>';
     }
 
     public function enqueue_admin_assets($hook)
@@ -355,12 +512,31 @@ final class Ship_Modal
         return $link_url ? '<a class="ship-modal__link" href="' . $link_url . '">' . $image . '</a>' : $image;
     }
 
+    private function render_button_markup($buttons)
+    {
+        if (! is_array($buttons) || ! $buttons) {
+            return '';
+        }
+        $markup = '<div class="ship-modal__buttons">';
+        foreach ($buttons as $button) {
+            if (! is_array($button) || empty($button['label']) || empty($button['url'])) {
+                continue;
+            }
+            $style = isset($button['style']) && 'secondary' === $button['style'] ? 'secondary' : 'primary';
+            $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" href="' . esc_url($button['url']) . '">' . esc_html($button['label']) . '</a>';
+        }
+        return $markup . '</div>';
+    }
+
     private function render_page_content($page, $title, $index)
     {
         $page = is_array($page) ? $page : array();
         $image = $this->render_image_content(isset($page['image_id']) ? $page['image_id'] : 0, isset($page['link_url']) ? $page['link_url'] : '', $title . ' ' . ((int) $index + 1) . 'ページ目');
-        $html = isset($page['html']) ? wp_kses_post($page['html']) : '';
-        return '<div class="ship-modal__page-media">' . $image . '</div><div class="ship-modal__page-html">' . $html . '</div>';
+        $heading = isset($page['heading']) ? $page['heading'] : '';
+        $body = isset($page['body']) ? $page['body'] : (isset($page['html']) ? wp_strip_all_tags($page['html']) : '');
+        $buttons = isset($page['buttons']) ? $page['buttons'] : array();
+        $copy = ($heading ? '<h3>' . esc_html($heading) . '</h3>' : '') . ($body ? '<p>' . wp_kses($body, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true))) . '</p>' : '') . $this->render_button_markup($buttons);
+        return '<div class="ship-modal__page-media">' . $image . '</div><div class="ship-modal__page-html">' . $copy . '</div>';
     }
 
     private function render_modal($post_id, $shortcode = false)
@@ -377,14 +553,23 @@ final class Ship_Modal
         $close_overlay = '1' === $this->meta($post_id, 'close_overlay', '1');
         $title = get_the_title($post_id);
         $image_position = $this->meta($post_id, 'image_position', 'top');
+        $heading = $this->meta($post_id, 'heading');
+        $body = $this->meta($post_id, 'body');
+        $buttons = $this->meta($post_id, 'buttons', array());
         $modal_id = 'ship-modal-' . absint($post_id) . '-' . wp_rand(100, 999);
         $content = '';
+        $content_class = '';
         if ('image' === $type) {
             $content = $this->render_image_content($this->meta($post_id, 'image_id'), $this->meta($post_id, 'link_url'), $title);
+            $content_class = ' ship-modal__content--flush';
         } elseif ('hybrid' === $type) {
             $image = $this->render_image_content($this->meta($post_id, 'image_id'), $this->meta($post_id, 'link_url'), $title);
-            $html = wp_kses_post($this->meta($post_id, 'html'));
-            $content = '<div class="ship-modal__hybrid ship-modal__hybrid--' . esc_attr($image_position) . '"><div class="ship-modal__hybrid-media">' . $image . '</div><div class="ship-modal__hybrid-html">' . $html . '</div></div>';
+            $body = $body !== '' ? $body : wp_strip_all_tags($this->meta($post_id, 'html'));
+            $copy = ($heading ? '<h2>' . esc_html($heading) . '</h2>' : '') . ($body ? '<p>' . wp_kses($body, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true))) . '</p>' : '') . $this->render_button_markup($buttons);
+            $content = '<div class="ship-modal__hybrid ship-modal__hybrid--' . esc_attr($image_position) . '"><div class="ship-modal__hybrid-media">' . $image . '</div><div class="ship-modal__hybrid-html">' . $copy . '</div></div>';
+        } elseif ('text' === $type) {
+            $copy = ($heading ? '<h2>' . esc_html($heading) . '</h2>' : '') . ($body ? '<p>' . wp_kses($body, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true))) . '</p>' : '') . $this->render_button_markup($buttons);
+            $content = '<div class="ship-modal__text">' . $copy . '</div>';
         } elseif ('pager' === $type) {
             $pages = $this->meta($post_id, 'pages', array());
             if (is_array($pages)) {
@@ -407,6 +592,7 @@ final class Ship_Modal
                 }
                 $controls .= '</div><button type="button" class="ship-modal__pager-arrow" data-ship-modal-page-next' . (count($pages) < 2 ? ' disabled' : '') . '>次へ</button></nav>';
                 $content = '<div class="ship-modal__pages" data-ship-modal-page-count="' . esc_attr(count($pages)) . '">' . $page_markup . $controls . '</div>';
+                $content_class = ' ship-modal__content--pager';
             }
         } else {
             $content = wp_kses_post($this->meta($post_id, 'html'));
@@ -426,7 +612,7 @@ final class Ship_Modal
             <div class="ship-modal__dialog" role="document">
                 <h2 id="<?php echo esc_attr($modal_id); ?>-title" class="screen-reader-text"><?php echo esc_html($title); ?></h2>
                 <?php if ($show_close) : ?><button type="button" class="ship-modal__close" aria-label="閉じる" data-ship-modal-close><span aria-hidden="true">×</span></button><?php endif; ?>
-                <div class="ship-modal__content"><?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+                <div class="ship-modal__content<?php echo esc_attr($content_class); ?>"><?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
             </div>
         </div>
         <?php

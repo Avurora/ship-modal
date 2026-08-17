@@ -3,16 +3,35 @@
 
   function refreshRows() {
     var type = $('#ship-modal-content_type').val();
-    $('.ship-modal-html-row').toggle(type === 'html' || type === 'hybrid');
+    $('.ship-modal-legacy-html-row').toggle(type === 'html');
+    $('.ship-modal-copy-row').toggle(type === 'hybrid' || type === 'text');
     $('.ship-modal-single-image-row').toggle(type === 'image' || type === 'hybrid');
     $('.ship-modal-hybrid-image-row').toggle(type === 'hybrid');
+    $('.ship-modal-buttons-row').toggle(type === 'hybrid' || type === 'text');
     $('.ship-modal-pages-row').toggle(type === 'pager');
+    $('#ship-modal-body').attr('maxlength', type === 'text' ? '120' : '80');
     $('.ship-modal-delay-row').toggle($('#ship-modal-trigger').val() === 'auto');
     $('.ship-modal-trigger-text-row').toggle($('#ship-modal-trigger').val() === 'manual');
   }
 
+  function updateCounter(field) {
+    var $field = $(field);
+    var max = parseInt($field.attr('maxlength'), 10);
+    if (!max) return;
+    var value = String($field.val() || '').replace(/<[^>]*>/g, '');
+    var $counter = $field.siblings('.ship-modal-char-count');
+    if (!$counter.length) {
+      $counter = $('<span class="ship-modal-char-count"></span>');
+      $field.after($counter);
+    }
+    $counter.text(value.length + ' / ' + max + '文字');
+    $counter.toggleClass('is-over', value.length > max);
+  }
+
   $(function () {
     refreshRows();
+    $('[maxlength]').each(function () { updateCounter(this); });
+    $(document).on('input', '[maxlength]', function () { updateCounter(this); });
     $('#ship-modal-content_type, #ship-modal-trigger').on('change', refreshRows);
     var frame;
     function selectImage(targetId, previewId) {
