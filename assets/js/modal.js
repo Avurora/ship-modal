@@ -6,7 +6,7 @@
   var previousFocus = null;
 
   function storageKey(modal) {
-    return 'ship-modal-' + modal.id;
+    return 'ship-modal-' + (modal.dataset.postId || modal.id);
   }
 
   function canShow(modal) {
