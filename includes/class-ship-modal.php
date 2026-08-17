@@ -437,12 +437,12 @@ final class Ship_Modal
         if (! in_array($type, $allowed_types, true)) {
             $type = 'html';
         }
-        $heading = isset($_POST['ship_modal_heading']) ? sanitize_text_field(wp_unslash($_POST['ship_modal_heading'])) : '';
-        $body_raw = isset($_POST['ship_modal_body']) ? wp_unslash($_POST['ship_modal_body']) : '';
+        $heading = isset($_POST['ship_modal_heading']) ? sanitize_text_field(wp_unslash($_POST['ship_modal_heading'])) : $this->meta($post_id, 'heading', '');
+        $body_raw = isset($_POST['ship_modal_body']) ? wp_unslash($_POST['ship_modal_body']) : $this->meta($post_id, 'body', '');
         $body = wp_kses($body_raw, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true)));
-        $html = isset($_POST['ship_modal_html']) ? wp_unslash($_POST['ship_modal_html']) : '';
-        $image_id = isset($_POST['ship_modal_image_id']) ? absint($_POST['ship_modal_image_id']) : 0;
-        $buttons = $this->normalize_buttons(isset($_POST['ship_modal_buttons']) ? $_POST['ship_modal_buttons'] : array(), 3, 'ボタン', $errors);
+        $html = isset($_POST['ship_modal_html']) ? wp_unslash($_POST['ship_modal_html']) : $this->meta($post_id, 'html', '');
+        $image_id = isset($_POST['ship_modal_image_id']) ? absint($_POST['ship_modal_image_id']) : absint($this->meta($post_id, 'image_id', 0));
+        $buttons = $this->normalize_buttons(isset($_POST['ship_modal_buttons']) ? $_POST['ship_modal_buttons'] : $this->meta($post_id, 'buttons', array()), 3, 'ボタン', $errors);
 
         $border_radius = isset($_POST['ship_modal_border_radius']) ? min(48, max(0, absint($_POST['ship_modal_border_radius']))) : 0;
         $padding = isset($_POST['ship_modal_padding']) ? min(64, max(0, absint($_POST['ship_modal_padding']))) : 20;
