@@ -198,10 +198,46 @@
     }
   });
 
+  function bindScrollTrigger(modal) {
+    var threshold = Math.max(10, Math.min(95, parseInt(modal.dataset.scrollThreshold || '50', 10)));
+    var fired = false;
+    function evaluate() {
+      if (fired) return;
+      var documentHeight = Math.max(document.documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0);
+      var scrollable = documentHeight - window.innerHeight;
+      var progress = scrollable > 0 ? (window.scrollY / scrollable) * 100 : 100;
+      if (progress < threshold) return;
+      fired = true;
+      window.removeEventListener('scroll', evaluate);
+      openModal(modal);
+    }
+    window.addEventListener('scroll', evaluate, { passive: true });
+    evaluate();
+  }
+
+  function bindExitIntentTrigger(modal) {
+    if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
+    var fired = false;
+    function evaluate(event) {
+      if (fired || event.clientY > 0 || event.relatedTarget) return;
+      fired = true;
+      document.removeEventListener('mouseout', evaluate);
+      openModal(modal);
+    }
+    document.addEventListener('mouseout', evaluate);
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.ship-modal[data-auto-open="1"]').forEach(function (modal) {
-      var delay = Math.max(0, parseInt(modal.dataset.delay || '0', 10)) * 1000;
-      window.setTimeout(function () { openModal(modal); }, delay);
+    document.querySelectorAll('.ship-modal').forEach(function (modal) {
+      var trigger = modal.dataset.trigger || 'auto';
+      if (trigger === 'auto') {
+        var delay = Math.max(0, parseInt(modal.dataset.delay || '0', 10)) * 1000;
+        window.setTimeout(function () { openModal(modal); }, delay);
+      } else if (trigger === 'scroll') {
+        bindScrollTrigger(modal);
+      } else if (trigger === 'exit_intent') {
+        bindExitIntentTrigger(modal);
+      }
     });
   });
 })();

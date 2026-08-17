@@ -17,8 +17,10 @@
     $('.ship-modal-pages-row').toggle(type === 'pager');
     $('.ship-modal-target-picker').toggle(currentScope() === 'selected');
     $('#ship-modal-body').attr('maxlength', type === 'text' ? '120' : '80');
-    $('.ship-modal-delay-row').toggle($('#ship-modal-trigger').val() === 'auto');
-    $('.ship-modal-trigger-text-row').toggle($('#ship-modal-trigger').val() === 'manual');
+    var trigger = $('#ship-modal-trigger').val();
+    $('.ship-modal-delay-row').toggle(trigger === 'auto');
+    $('.ship-modal-scroll-row').toggle(trigger === 'scroll');
+    $('.ship-modal-trigger-text-row').toggle(trigger === 'manual');
   }
 
   function updateCounter(field) {

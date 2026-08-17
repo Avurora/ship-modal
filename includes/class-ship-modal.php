@@ -251,6 +251,7 @@ final class Ship_Modal
         $scope = $this->meta($post->ID, 'scope', 'all');
         $trigger = $this->meta($post->ID, 'trigger', 'auto');
         $delay = max(0, (int) $this->meta($post->ID, 'delay', 2));
+        $scroll_threshold = min(95, max(10, (int) $this->meta($post->ID, 'scroll_threshold', 50)));
         $frequency = $this->meta($post->ID, 'frequency', 'session');
         $start = $this->meta($post->ID, 'start_at');
         $end = $this->meta($post->ID, 'end_at');
@@ -287,8 +288,9 @@ final class Ship_Modal
                     <p class="description">公開中のページ・記事だけが検索対象です。指定ページのみを選んだ場合、ここで選択したページにだけ表示されます。</p>
                 </div>
             </td></tr>
-            <tr><th><label for="ship-modal-trigger">起動方法</label></th><td><?php $this->select('trigger', $trigger, array('auto' => '自動表示', 'manual' => 'ボタンから表示')); ?></td></tr>
+            <tr><th><label for="ship-modal-trigger">起動方法</label></th><td><?php $this->select('trigger', $trigger, array('auto' => '遅延して自動表示', 'scroll' => 'スクロール到達で表示', 'exit_intent' => '離脱意図で表示（PCのみ）', 'manual' => 'ボタンから表示')); ?><p class="description">戻るボタンの履歴フックは、誤操作・アクセシビリティ・検索評価への影響があるため対応していません。</p></td></tr>
             <tr class="ship-modal-delay-row"><th><label for="ship-modal-delay">表示までの秒数</label></th><td><input type="number" min="0" max="120" step="1" class="small-text" name="ship_modal_delay" id="ship-modal-delay" value="<?php echo esc_attr($delay); ?>"> 秒</td></tr>
+            <tr class="ship-modal-scroll-row"><th><label for="ship-modal-scroll_threshold">スクロール到達率</label></th><td><input type="number" min="10" max="95" step="5" class="small-text" name="ship_modal_scroll_threshold" id="ship-modal-scroll_threshold" value="<?php echo esc_attr($scroll_threshold); ?>"> ％<p class="description">ページ全体の指定割合までスクロールすると表示します。</p></td></tr>
             <tr class="ship-modal-trigger-text-row"><th><label for="ship-modal-trigger_text">ボタン文言</label></th><td><input type="text" class="widefat" name="ship_modal_trigger_text" id="ship-modal-trigger_text" value="<?php echo esc_attr($trigger_text); ?>"></td></tr>
             <tr><th><label for="ship-modal-frequency">表示頻度</label></th><td><?php $this->select('frequency', $frequency, array('always' => '毎回', 'session' => 'セッションごとに1回', 'day' => '1日1回', 'once' => 'ユーザーごとに1回')); ?></td></tr>
             <tr><th><label for="ship-modal-start_at">開始日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_start_at" id="ship-modal-start_at" value="<?php echo esc_attr($start); ?>"><p class="description">空欄ならすぐ表示</p></td></tr>
@@ -461,6 +463,7 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_image_id', $image_id);
         update_post_meta($post_id, '_ship_modal_link_new_tab', isset($_POST['ship_modal_link_new_tab']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_delay', isset($_POST['ship_modal_delay']) ? min(120, max(0, absint($_POST['ship_modal_delay']))) : 2);
+        update_post_meta($post_id, '_ship_modal_scroll_threshold', isset($_POST['ship_modal_scroll_threshold']) ? min(95, max(10, absint($_POST['ship_modal_scroll_threshold']))) : 50);
         update_post_meta($post_id, '_ship_modal_show_close', isset($_POST['ship_modal_show_close']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_close_overlay', isset($_POST['ship_modal_close_overlay']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_pages', $pages);
@@ -481,7 +484,7 @@ final class Ship_Modal
             'image_position' => array('top', 'left', 'right'),
             'design' => array('center', 'bottom', 'side', 'fullscreen'),
             'scope' => array('all', 'front', 'singular', 'selected', 'shortcode'),
-            'trigger' => array('auto', 'manual'),
+            'trigger' => array('auto', 'scroll', 'exit_intent', 'manual'),
             'frequency' => array('always', 'session', 'day', 'once'),
         );
         foreach ($allowed as $field => $values) {
@@ -670,6 +673,7 @@ final class Ship_Modal
         $trigger = $this->meta($post_id, 'trigger', 'auto');
         $frequency = $this->meta($post_id, 'frequency', 'session');
         $delay = max(0, (int) $this->meta($post_id, 'delay', 2));
+        $scroll_threshold = min(95, max(10, (int) $this->meta($post_id, 'scroll_threshold', 50)));
         $show_close = '1' === $this->meta($post_id, 'show_close', '1');
         $close_overlay = '1' === $this->meta($post_id, 'close_overlay', '1');
         $title = get_the_title($post_id);
@@ -732,7 +736,7 @@ final class Ship_Modal
             echo '<button type="button" class="' . esc_attr($trigger_class) . '" data-ship-modal-target="' . esc_attr($modal_id) . '">' . esc_html($button_text) . '</button>';
         }
         ?>
-        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
+        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-scroll-threshold="<?php echo esc_attr($scroll_threshold); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
             <div class="ship-modal__backdrop" data-ship-modal-close></div>
             <div class="ship-modal__dialog" role="document">
                 <h2 id="<?php echo esc_attr($modal_id); ?>-title" class="screen-reader-text"><?php echo esc_html($title); ?></h2>
