@@ -38,6 +38,15 @@
     $counter.toggleClass('is-over', value.length > max);
   }
 
+  function refreshButtonActions(container) {
+    $(container).find('.ship-modal-button-action').each(function () {
+      var isClose = $(this).val() === 'close';
+      var $field = $(this).closest('.ship-modal-button-field');
+      $field.find('.ship-modal-button-url').prop('disabled', isClose);
+      $field.find('input[type="checkbox"][name$="[new_tab]"]').prop('disabled', isClose);
+    });
+  }
+
   function updateTargetCount() {
     var count = $('#ship-modal-target-selected .ship-modal-target-chip').length;
     $('.ship-modal-target-count').text(count ? count + '件選択中' : '未選択');
@@ -96,7 +105,9 @@
   $(function () {
     refreshRows();
     $('[maxlength]').each(function () { updateCounter(this); });
+    refreshButtonActions(document);
     $(document).on('input', '[maxlength]', function () { updateCounter(this); });
+    $(document).on('change', '.ship-modal-button-action', function () { refreshButtonActions($(this).closest('.ship-modal-button-field')); });
     $('#ship-modal-content_type, #ship-modal-trigger, #ship-modal-target-post-type').on('change', refreshRows);
     $('input[name="ship_modal_scope"]').on('change', function () {
       refreshRows();

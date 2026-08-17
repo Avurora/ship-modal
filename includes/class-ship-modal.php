@@ -174,11 +174,12 @@ final class Ship_Modal
     private function render_button_fields($buttons, $max, $prefix)
     {
         $buttons = is_array($buttons) ? array_values($buttons) : array();
-        echo '<p class="description ship-modal-button-help">ボタン文言は表示12文字以内です。文中で改行する場合は <code>&lt;br&gt;</code> を入力してください。</p>';
+        echo '<p class="description ship-modal-button-help">ボタン文言は表示12文字以内です。文中で改行する場合は <code>&lt;br&gt;</code> を入力してください。「閉じる」を選んだボタンはURL不要です。</p>';
         for ($index = 0; $index < $max; $index++) {
             $button = isset($buttons[$index]) && is_array($buttons[$index]) ? $buttons[$index] : array();
             $label = isset($button['label']) ? $button['label'] : '';
             $url = isset($button['url']) ? $button['url'] : '';
+            $action = isset($button['action']) && 'close' === $button['action'] ? 'close' : 'link';
             $style = isset($button['style']) && in_array($button['style'], array('primary', 'secondary'), true) ? $button['style'] : 'primary';
             $new_tab = ! empty($button['new_tab']);
             $base = $prefix . '[' . $index . ']';
@@ -186,7 +187,8 @@ final class Ship_Modal
             <div class="ship-modal-button-field">
                 <span class="ship-modal-button-field__number"><?php echo esc_html((string) ($index + 1)); ?></span>
                 <input type="text" maxlength="30" name="<?php echo esc_attr($base . '[label]'); ?>" value="<?php echo esc_attr($label); ?>" placeholder="文言（表示12文字・改行は&lt;br&gt;）">
-                <input type="url" name="<?php echo esc_attr($base . '[url]'); ?>" value="<?php echo esc_attr($url); ?>" placeholder="https://example.com/">
+                <input type="url" class="ship-modal-button-url" name="<?php echo esc_attr($base . '[url]'); ?>" value="<?php echo esc_attr($url); ?>" placeholder="https://example.com/">
+                <select class="ship-modal-button-action" name="<?php echo esc_attr($base . '[action]'); ?>"><option value="link" <?php selected($action, 'link'); ?>>リンク</option><option value="close" <?php selected($action, 'close'); ?>>閉じる</option></select>
                 <select name="<?php echo esc_attr($base . '[style]'); ?>"><option value="primary" <?php selected($style, 'primary'); ?>>メイン</option><option value="secondary" <?php selected($style, 'secondary'); ?>>サブ</option></select>
                 <label><input type="checkbox" name="<?php echo esc_attr($base . '[new_tab]'); ?>" value="1" <?php checked($new_tab, true); ?>> 別タブ</label>
             </div>
@@ -236,7 +238,7 @@ final class Ship_Modal
             </tr>
             <tr class="ship-modal-single-image-row"><th><label for="ship-modal-link_url">クリック先URL</label></th><td><input type="url" class="widefat" name="ship_modal_link_url" id="ship-modal-link_url" value="<?php echo esc_attr($link_url); ?>" placeholder="https://example.com/"><br><label><input type="checkbox" name="ship_modal_link_new_tab" value="1" <?php checked($link_new_tab, true); ?>> 別タブで開く</label><p class="description">空欄なら画像はリンクになりません。</p></td></tr>
             <tr class="ship-modal-hybrid-image-row"><th><label for="ship-modal-image_position">画像の位置</label></th><td><?php $this->select('image_position', $image_position, array('top' => '上', 'left' => '左', 'right' => '右')); ?></td></tr>
-            <tr class="ship-modal-buttons-row"><th>ボタン</th><td><p class="description">画像＋ボタン：1〜3個 / テキスト＋ボタン：1〜3個。文言の改行は&lt;br&gt;で指定できます（表示文字数12文字以内）。</p><?php $this->render_button_fields($buttons, 3, 'ship_modal_buttons'); ?></td></tr>
+            <tr class="ship-modal-buttons-row"><th>ボタン</th><td><p class="description">画像＋ボタン：1〜3個 / テキスト＋ボタン：1〜3個。文言の改行は&lt;br&gt;で指定できます（表示文字数12文字以内）。「閉じる」を選んだボタンはURL不要です。</p><?php $this->render_button_fields($buttons, 3, 'ship_modal_buttons'); ?></td></tr>
             <tr class="ship-modal-pages-row"><th>ページ</th><td><div id="ship-modal-pages"><?php foreach ($pages as $index => $page) { $this->render_page_row($index, is_array($page) ? $page : array()); } ?></div><p><button type="button" class="button" id="ship-modal-add-page">＋ ページを追加</button></p><p class="description">各ページは画像とHTMLを個別に設定できます。</p></td></tr>
             <tr><th><label for="ship-modal-design">デザイン</label></th><td><?php $this->select('design', $design, array('center' => '中央カード', 'bottom' => '画面下部バナー', 'side' => '右下ポップアップ', 'fullscreen' => 'フルスクリーン')); ?></td></tr>
             <tr><th><label for="ship-modal-border_radius">角丸（border-radius）</label></th><td><input type="number" min="0" max="48" step="1" class="small-text" name="ship_modal_border_radius" id="ship-modal-border_radius" value="<?php echo esc_attr($border_radius); ?>"> px <p class="description">0〜48px。0なら角丸なし。</p></td></tr>
@@ -338,12 +340,13 @@ final class Ship_Modal
             $label = preg_replace('/\s*<br\s*\/?>\s*/i', '<br>', trim($label));
             $label_text = trim(wp_strip_all_tags($label));
             $url = isset($button['url']) ? esc_url_raw($button['url']) : '';
+            $action = isset($button['action']) && 'close' === $button['action'] ? 'close' : 'link';
             $style = isset($button['style']) && in_array($button['style'], array('primary', 'secondary'), true) ? $button['style'] : 'primary';
             $new_tab = ! empty($button['new_tab']) ? '1' : '0';
-            if ($label_text === '' && $url === '') {
+            if ($label_text === '' && ('close' === $action || $url === '')) {
                 continue;
             }
-            if ($label_text === '' || $url === '') {
+            if ($label_text === '' || ('link' === $action && $url === '')) {
                 $errors[] = $context . 'は文言とURLをセットで入力してください。';
                 continue;
             }
@@ -355,7 +358,7 @@ final class Ship_Modal
                 $errors[] = $context . 'のURL形式が正しくありません。';
                 continue;
             }
-            $normalized[] = array('label' => $label, 'url' => $url, 'style' => $style, 'new_tab' => $new_tab);
+            $normalized[] = array('label' => $label, 'url' => 'close' === $action ? '' : $url, 'action' => $action, 'style' => $style, 'new_tab' => 'close' === $action ? '0' : $new_tab);
         }
         return $normalized;
     }
@@ -657,13 +660,22 @@ final class Ship_Modal
         }
         $markup = '<div class="ship-modal__buttons">';
         foreach ($buttons as $button) {
-            if (! is_array($button) || empty($button['label']) || empty($button['url'])) {
+            if (! is_array($button) || empty($button['label'])) {
+                continue;
+            }
+            $action = isset($button['action']) && 'close' === $button['action'] ? 'close' : 'link';
+            if ('link' === $action && empty($button['url'])) {
                 continue;
             }
             $style = isset($button['style']) && 'secondary' === $button['style'] ? 'secondary' : 'primary';
             $target = ! empty($button['new_tab']) ? ' target="_blank" rel="noopener noreferrer"' : '';
             $label = wp_kses($button['label'], array('br' => array()));
-            $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" data-ship-modal-action="button" data-ship-modal-label="' . esc_attr(wp_strip_all_tags($label)) . '" href="' . esc_url($button['url']) . '"' . $target . '>' . $label . '</a>';
+            $label_attr = esc_attr(wp_strip_all_tags($label));
+            if ('close' === $action) {
+                $markup .= '<button type="button" class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" data-ship-modal-action="close" data-ship-modal-label="' . $label_attr . '" data-ship-modal-close>' . $label . '</button>';
+            } else {
+                $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" data-ship-modal-action="button" data-ship-modal-label="' . $label_attr . '" href="' . esc_url($button['url']) . '"' . $target . '>' . $label . '</a>';
+            }
         }
         return $markup . '</div>';
     }

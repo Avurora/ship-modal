@@ -7,3 +7,4 @@
 .ship-modal-scroll-row{display:none}
 .ship-modal-trigger-style-row{display:none}.ship-modal-form-table input[type="color"]{width:42px;height:32px;padding:2px;vertical-align:middle}
 .ship-modal-button-help{margin:0 0 6px}
+.ship-modal-button-field{grid-template-columns:24px minmax(100px,1fr) minmax(140px,1.5fr) 90px 70px 84px}
