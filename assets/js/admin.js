@@ -129,11 +129,13 @@
       }
       var currentFrame = frame;
       if (currentFrame) {
-        currentFrame.off('select.shipModal');
+        // wp.media のフレームは Backbone.Events なので、jQuery のような
+        // イベント名前空間（select.shipModal）は使えない。
+        currentFrame.off('select');
       }
       currentFrame = window.wp.media({ title: 'モーダル画像を選択', button: { text: 'この画像を使用' }, multiple: false, library: { type: 'image' } });
       frame = currentFrame;
-      currentFrame.on('select.shipModal', function () {
+      currentFrame.on('select', function () {
         var selected = currentFrame.state().get('selection').first();
         if (!selected) return;
         var attachment = selected.toJSON();
