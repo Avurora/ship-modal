@@ -259,11 +259,15 @@ final class Ship_Modal
     {
         $impressions = (int) get_post_meta($post->ID, '_ship_modal_impressions', true);
         $clicks = (int) get_post_meta($post->ID, '_ship_modal_clicks', true);
+        $closes = (int) get_post_meta($post->ID, '_ship_modal_closes', true);
+        $page_views = (int) get_post_meta($post->ID, '_ship_modal_page_views', true);
         $rate = $impressions > 0 ? round(($clicks / $impressions) * 100, 1) : 0;
         echo '<p><strong>表示回数：</strong> ' . number_format_i18n($impressions) . '</p>';
         echo '<p><strong>クリック数：</strong> ' . number_format_i18n($clicks) . '</p>';
         echo '<p><strong>クリック率：</strong> ' . esc_html($rate) . '%</p>';
-        echo '<p class="description">表示時とリンククリック時をブラウザから計測します。</p>';
+        echo '<p><strong>閉じる回数：</strong> ' . number_format_i18n($closes) . '</p>';
+        echo '<p><strong>ページ閲覧数：</strong> ' . number_format_i18n($page_views) . '</p>';
+        echo '<p class="description">GTM向けにdataLayerへ表示・クリック・閉じる・ページ切り替えイベントも送信します。</p>';
     }
 
     private function normalize_buttons($raw_buttons, $max, $context, &$errors)
@@ -572,7 +576,7 @@ final class Ship_Modal
             return '';
         }
         $link_url = esc_url($link_url);
-        return $link_url ? '<a class="ship-modal__link" href="' . $link_url . '">' . $image . '</a>' : $image;
+        return $link_url ? '<a class="ship-modal__link" data-ship-modal-action="image" href="' . $link_url . '">' . $image . '</a>' : $image;
     }
 
     private function render_button_markup($buttons)
@@ -586,7 +590,7 @@ final class Ship_Modal
                 continue;
             }
             $style = isset($button['style']) && 'secondary' === $button['style'] ? 'secondary' : 'primary';
-            $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" href="' . esc_url($button['url']) . '">' . esc_html($button['label']) . '</a>';
+            $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" data-ship-modal-action="button" data-ship-modal-label="' . esc_attr($button['label']) . '" href="' . esc_url($button['url']) . '">' . esc_html($button['label']) . '</a>';
         }
         return $markup . '</div>';
     }
@@ -674,7 +678,7 @@ final class Ship_Modal
             echo '<button type="button" class="' . esc_attr($trigger_class) . '" data-ship-modal-target="' . esc_attr($modal_id) . '">' . esc_html($button_text) . '</button>';
         }
         ?>
-        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
+        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
             <div class="ship-modal__backdrop" data-ship-modal-close></div>
             <div class="ship-modal__dialog" role="document">
                 <h2 id="<?php echo esc_attr($modal_id); ?>-title" class="screen-reader-text"><?php echo esc_html($title); ?></h2>
@@ -713,10 +717,16 @@ final class Ship_Modal
         check_ajax_referer('ship_modal_event', 'nonce');
         $post_id = isset($_POST['modal_id']) ? absint($_POST['modal_id']) : 0;
         $event = isset($_POST['event']) ? sanitize_key(wp_unslash($_POST['event'])) : '';
-        if (! $post_id || 'ship_modal' !== get_post_type($post_id) || ! in_array($event, array('impression', 'click'), true)) {
+        if (! $post_id || 'ship_modal' !== get_post_type($post_id) || ! in_array($event, array('impression', 'click', 'close', 'page_view'), true)) {
             wp_send_json_error(array('message' => 'invalid request'), 400);
         }
-        $key = 'impression' === $event ? '_ship_modal_impressions' : '_ship_modal_clicks';
+        $keys = array(
+            'impression' => '_ship_modal_impressions',
+            'click' => '_ship_modal_clicks',
+            'close' => '_ship_modal_closes',
+            'page_view' => '_ship_modal_page_views',
+        );
+        $key = $keys[$event];
         $count = (int) get_post_meta($post_id, $key, true);
         update_post_meta($post_id, $key, $count + 1);
         wp_send_json_success();

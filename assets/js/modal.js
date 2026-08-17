@@ -32,7 +32,7 @@
     } catch (e) { /* storage disabled */ }
   }
 
-  function track(modal, event) {
+  function trackServer(modal, event) {
     if (!config.ajaxUrl || !config.nonce) return;
     var body = new URLSearchParams({
       action: 'ship_modal_event',
@@ -45,6 +45,39 @@
     } else {
       fetch(config.ajaxUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, credentials: 'same-origin' });
     }
+  }
+
+  function currentPage(modal) {
+    var pages = modal ? modal.querySelector('.ship-modal__pages') : null;
+    var current = pages ? pages.querySelector('.ship-modal__page.is-active') : null;
+    var index = current ? parseInt(current.dataset.shipModalPagePanel, 10) : 0;
+    var count = pages ? parseInt(pages.dataset.shipModalPageCount || '0', 10) : 0;
+    return { index: isNaN(index) ? 0 : index, count: isNaN(count) ? 0 : count };
+  }
+
+  function pushDataLayer(modal, eventName, details) {
+    if (!modal) return;
+    var page = currentPage(modal);
+    var payload = {
+      event: eventName,
+      ship_modal_id: modal.dataset.postId || '',
+      ship_modal_title: modal.dataset.modalTitle || '',
+      ship_modal_content_type: modal.dataset.contentType || '',
+      ship_modal_design: modal.dataset.design || '',
+      ship_modal_trigger: modal.dataset.trigger || '',
+      ship_modal_frequency: modal.dataset.frequency || '',
+      ship_modal_page: page.index + 1,
+      ship_modal_page_count: page.count
+    };
+    Object.keys(details || {}).forEach(function (key) { payload[key] = details[key]; });
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(payload);
+  }
+
+  function track(modal, event, details) {
+    trackServer(modal, event);
+    var eventName = event === 'impression' ? 'ship_modal_impression' : event === 'click' ? 'ship_modal_click' : event === 'close' ? 'ship_modal_close' : 'ship_modal_page_view';
+    pushDataLayer(modal, eventName, details);
   }
 
   function focusable(modal) {
@@ -60,6 +93,7 @@
     window.requestAnimationFrame(function () { modal.classList.add('is-open'); });
     markShown(modal);
     track(modal, 'impression');
+    if (modal.querySelector('.ship-modal__pages')) track(modal, 'page_view', { ship_modal_action: 'page_view' });
     var close = modal.querySelector('.ship-modal__close');
     if (close) close.focus();
   }
@@ -69,6 +103,7 @@
     modal.classList.remove('is-open');
     window.setTimeout(function () { modal.hidden = true; }, 220);
     document.body.classList.remove('ship-modal-open');
+    track(modal, 'close');
     if (previousFocus && previousFocus.focus) previousFocus.focus();
     activeModal = null;
   }
@@ -78,6 +113,8 @@
     if (!container) return;
     var panels = Array.prototype.slice.call(container.querySelectorAll('[data-ship-modal-page-panel]'));
     if (!panels.length) return;
+    var currentPanel = container.querySelector('.ship-modal__page.is-active');
+    var previousIndex = currentPanel ? parseInt(currentPanel.dataset.shipModalPagePanel, 10) : 0;
     var nextIndex = Math.max(0, Math.min(panels.length - 1, index));
     panels.forEach(function (panel, panelIndex) {
       var active = panelIndex === nextIndex;
@@ -95,6 +132,7 @@
     var next = container.querySelector('[data-ship-modal-page-next]');
     if (previous) previous.disabled = nextIndex === 0;
     if (next) next.disabled = nextIndex === panels.length - 1;
+    if (nextIndex !== previousIndex) track(modal, 'page_view', { ship_modal_action: 'page_view' });
   }
 
   document.addEventListener('click', function (event) {
@@ -110,8 +148,16 @@
       if (modal && (close.classList.contains('ship-modal__backdrop') ? modal.dataset.closeOverlay === '1' : true)) closeModal(modal);
       return;
     }
-    var link = event.target.closest('.ship-modal__link');
-    if (link) track(link.closest('.ship-modal'), 'click');
+    var link = event.target.closest('.ship-modal a');
+    if (link) {
+      var modal = link.closest('.ship-modal');
+      var action = link.dataset.shipModalAction || 'link';
+      track(modal, 'click', {
+        ship_modal_action: action,
+        ship_modal_label: link.dataset.shipModalLabel || (link.textContent || '').trim().slice(0, 80),
+        ship_modal_url: link.href || ''
+      });
+    }
   });
 
   document.addEventListener('click', function (event) {
