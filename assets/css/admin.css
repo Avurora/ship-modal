@@ -9,3 +9,4 @@
 .ship-modal-button-help{margin:0 0 6px}
 .ship-modal-button-field{grid-template-columns:24px minmax(100px,1fr) minmax(140px,1.5fr) 90px 70px 84px}
 .ship-modal-admin-guide{margin:12px 0 18px;padding:4px 14px}.ship-modal-admin-guide p{margin:8px 0}.ship-modal-admin-guide ol{margin:0 0 8px 20px;padding:0}.ship-modal-admin-guide li{margin:4px 0}
+.ship-modal-color-grid{display:grid;grid-template-columns:repeat(3,minmax(120px,1fr));gap:8px 12px;max-width:620px}.ship-modal-color-grid label{display:flex;align-items:center;justify-content:space-between;gap:8px}.ship-modal-color-grid input[type=color]{width:40px;height:30px;padding:1px}@media (max-width:782px){.ship-modal-color-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}}

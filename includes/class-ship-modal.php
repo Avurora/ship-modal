@@ -130,6 +130,44 @@ final class Ship_Modal
         return $value === '' ? $default : $value;
     }
 
+    private function theme_color_defaults()
+    {
+        return array(
+            'surface' => '#ffffff',
+            'accent' => '#0f766e',
+            'heading' => '#0f172a',
+            'text' => '#334155',
+            'muted' => '#64748b',
+            'border' => '#e2e8f0',
+            'secondary' => '#e2e8f0',
+            'secondary_text' => '#0f172a',
+            'close_bg' => '#0f172a',
+            'close_text' => '#ffffff',
+            'overlay' => '#0f172a',
+        );
+    }
+
+    private function theme_colors($post_id)
+    {
+        $colors = array();
+        foreach ($this->theme_color_defaults() as $key => $default) {
+            $colors[$key] = sanitize_hex_color($this->meta($post_id, 'theme_' . $key, $default)) ?: $default;
+        }
+        return $colors;
+    }
+
+    private function color_to_rgba($hex, $alpha)
+    {
+        $hex = ltrim((string) $hex, '#');
+        if (3 === strlen($hex)) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        $red = hexdec(substr($hex, 0, 2));
+        $green = hexdec(substr($hex, 2, 2));
+        $blue = hexdec(substr($hex, 4, 2));
+        return 'rgba(' . $red . ',' . $green . ',' . $blue . ',' . (float) $alpha . ')';
+    }
+
     private function select($name, $value, $options)
     {
         echo '<select name="ship_modal_' . esc_attr($name) . '" id="ship-modal-' . esc_attr($name) . '" class="widefat">';
@@ -336,6 +374,7 @@ final class Ship_Modal
         $trigger_text = $this->meta($post->ID, 'trigger_text', 'キャンペーン詳細を見る');
         $trigger_bg_color = sanitize_hex_color($this->meta($post->ID, 'trigger_bg_color', '#0f766e')) ?: '#0f766e';
         $trigger_text_color = sanitize_hex_color($this->meta($post->ID, 'trigger_text_color', '#ffffff')) ?: '#ffffff';
+        $theme_colors = $this->theme_colors($post->ID);
         $trigger_position = $this->meta($post->ID, 'trigger_position', 'right');
         if (! in_array($trigger_position, array('left', 'center', 'right'), true)) {
             $trigger_position = 'right';
@@ -378,6 +417,22 @@ final class Ship_Modal
             <tr><th><label for="ship-modal-frequency">表示頻度</label></th><td><?php $this->select('frequency', $frequency, array('always' => '毎回', 'session' => 'セッションごとに1回', 'day' => '1日1回', 'once' => 'ユーザーごとに1回')); ?></td></tr>
             <tr><th><label for="ship-modal-start_at">開始日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_start_at" id="ship-modal-start_at" value="<?php echo esc_attr($start); ?>"><p class="description">空欄ならすぐ表示</p></td></tr>
             <tr><th><label for="ship-modal-end_at">終了日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_end_at" id="ship-modal-end_at" value="<?php echo esc_attr($end); ?>"><p class="description">空欄なら期限なし</p></td></tr>
+            <tr><th>テーマカラー</th><td>
+                <div class="ship-modal-color-grid">
+                    <label>コンテナ背景 <input type="color" name="ship_modal_theme_surface" value="<?php echo esc_attr($theme_colors['surface']); ?>"></label>
+                    <label>アクセント <input type="color" name="ship_modal_theme_accent" value="<?php echo esc_attr($theme_colors['accent']); ?>"></label>
+                    <label>見出し <input type="color" name="ship_modal_theme_heading" value="<?php echo esc_attr($theme_colors['heading']); ?>"></label>
+                    <label>本文 <input type="color" name="ship_modal_theme_text" value="<?php echo esc_attr($theme_colors['text']); ?>"></label>
+                    <label>補助テキスト <input type="color" name="ship_modal_theme_muted" value="<?php echo esc_attr($theme_colors['muted']); ?>"></label>
+                    <label>枠線 <input type="color" name="ship_modal_theme_border" value="<?php echo esc_attr($theme_colors['border']); ?>"></label>
+                    <label>サブボタン背景 <input type="color" name="ship_modal_theme_secondary" value="<?php echo esc_attr($theme_colors['secondary']); ?>"></label>
+                    <label>サブボタン文字 <input type="color" name="ship_modal_theme_secondary_text" value="<?php echo esc_attr($theme_colors['secondary_text']); ?>"></label>
+                    <label>閉じるボタン背景 <input type="color" name="ship_modal_theme_close_bg" value="<?php echo esc_attr($theme_colors['close_bg']); ?>"></label>
+                    <label>閉じるボタン文字 <input type="color" name="ship_modal_theme_close_text" value="<?php echo esc_attr($theme_colors['close_text']); ?>"></label>
+                    <label>背景オーバーレイ <input type="color" name="ship_modal_theme_overlay" value="<?php echo esc_attr($theme_colors['overlay']); ?>"></label>
+                </div>
+                <p class="description">モーダル本体、見出し、リンク、ボタン、閉じるボタン、背景の色をまとめて変更できます。保存後に公開ページで確認してください。</p>
+            </td></tr>
             <tr><th>閉じる操作</th><td><input type="hidden" name="ship_modal_show_close" value="0"><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><input type="hidden" name="ship_modal_close_overlay" value="0"><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label><p class="description">チェックを外した場合も確実にOFFとして保存されます。</p></td></tr>
         </table>
         <p class="description">ショートコード例：<code>[ship_modal id="<?php echo esc_attr($post->ID); ?>"]</code></p>
@@ -447,6 +502,11 @@ final class Ship_Modal
         $close_overlay = ! empty($_POST['ship_modal_close_overlay']) ? '1' : '0';
         update_post_meta($post_id, '_ship_modal_show_close', $show_close);
         update_post_meta($post_id, '_ship_modal_close_overlay', $close_overlay);
+        foreach ($this->theme_color_defaults() as $theme_key => $theme_default) {
+            $theme_meta_key = 'theme_' . $theme_key;
+            $theme_value = isset($_POST['ship_modal_' . $theme_meta_key]) ? sanitize_hex_color(wp_unslash($_POST['ship_modal_' . $theme_meta_key])) : $this->meta($post_id, $theme_meta_key, $theme_default);
+            update_post_meta($post_id, '_ship_modal_' . $theme_meta_key, $theme_value ?: $theme_default);
+        }
 
         $errors = array();
         $type = isset($_POST['ship_modal_content_type']) ? sanitize_key(wp_unslash($_POST['ship_modal_content_type'])) : $this->meta($post_id, 'content_type', 'image');
@@ -777,7 +837,14 @@ final class Ship_Modal
         $border_radius = min(48, max(0, (int) $this->meta($post_id, 'border_radius', 0)));
         $padding = min(64, max(0, (int) $this->meta($post_id, 'padding', 20)));
         $max_width = min(1200, max(280, (int) $this->meta($post_id, 'max_width', 620)));
-        $modal_style = '--ship-modal-radius:' . $border_radius . 'px;--ship-modal-padding:' . $padding . 'px;--ship-modal-max-width:' . $max_width . 'px;';
+        $theme_colors = $this->theme_colors($post_id);
+        $modal_style = '--ship-modal-radius:' . $border_radius . 'px;--ship-modal-padding:' . $padding . 'px;--ship-modal-max-width:' . $max_width . 'px;'
+            . '--ship-modal-surface:' . $theme_colors['surface'] . ';--ship-modal-accent:' . $theme_colors['accent'] . ';'
+            . '--ship-modal-heading:' . $theme_colors['heading'] . ';--ship-modal-text:' . $theme_colors['text'] . ';'
+            . '--ship-modal-muted:' . $theme_colors['muted'] . ';--ship-modal-border:' . $theme_colors['border'] . ';'
+            . '--ship-modal-secondary:' . $theme_colors['secondary'] . ';--ship-modal-secondary-text:' . $theme_colors['secondary_text'] . ';'
+            . '--ship-modal-close-bg:' . $theme_colors['close_bg'] . ';--ship-modal-close-text:' . $theme_colors['close_text'] . ';'
+            . '--ship-modal-overlay:' . $this->color_to_rgba($theme_colors['overlay'], 0.45) . ';';
         $modal_id = 'ship-modal-' . absint($post_id) . '-' . wp_rand(100, 999);
         $content = '';
         $content_class = '';
