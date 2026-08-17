@@ -529,7 +529,7 @@ final class Ship_Modal
         $query = new WP_Query(array(
             'post_type' => 'ship_modal',
             'post_status' => 'publish',
-            'posts_per_page' => 20,
+            'posts_per_page' => -1,
             'fields' => 'ids',
             'no_found_rows' => true,
             'orderby' => 'menu_order date',
