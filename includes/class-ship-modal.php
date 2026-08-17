@@ -369,7 +369,7 @@ final class Ship_Modal
             <tr><th><label for="ship-modal-frequency">表示頻度</label></th><td><?php $this->select('frequency', $frequency, array('always' => '毎回', 'session' => 'セッションごとに1回', 'day' => '1日1回', 'once' => 'ユーザーごとに1回')); ?></td></tr>
             <tr><th><label for="ship-modal-start_at">開始日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_start_at" id="ship-modal-start_at" value="<?php echo esc_attr($start); ?>"><p class="description">空欄ならすぐ表示</p></td></tr>
             <tr><th><label for="ship-modal-end_at">終了日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_end_at" id="ship-modal-end_at" value="<?php echo esc_attr($end); ?>"><p class="description">空欄なら期限なし</p></td></tr>
-            <tr><th>閉じる操作</th><td><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label></td></tr>
+            <tr><th>閉じる操作</th><td><input type="hidden" name="ship_modal_show_close" value="0"><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><input type="hidden" name="ship_modal_close_overlay" value="0"><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label><p class="description">チェックを外した場合も確実にOFFとして保存されます。</p></td></tr>
         </table>
         <p class="description">ショートコード例：<code>[ship_modal id="<?php echo esc_attr($post->ID); ?>"]</code></p>
         <?php
@@ -407,14 +407,13 @@ final class Ship_Modal
             $action = isset($button['action']) && 'close' === $button['action'] ? 'close' : 'link';
             $style = isset($button['style']) && in_array($button['style'], array('primary', 'secondary'), true) ? $button['style'] : 'primary';
             $new_tab = ! empty($button['new_tab']) ? '1' : '0';
-            if ($label_text === '' && ('close' === $action || $url === '')) {
+            if ($label_text === '') {
                 continue;
             }
-            if ($label_text === '' || ('link' === $action && $url === '')) {
-                continue;
-            }
-            if (! preg_match('/^(https?:\\/\\/|tel:|mailto:)/i', $url)) {
-                continue;
+            if ('link' === $action) {
+                if ($url === '' || ! preg_match('/^(https?:\\/\\/|tel:|mailto:)/i', $url)) {
+                    continue;
+                }
             }
             $normalized[] = array('label' => $label, 'url' => 'close' === $action ? '' : $url, 'action' => $action, 'style' => $style, 'new_tab' => 'close' === $action ? '0' : $new_tab);
         }
@@ -432,6 +431,13 @@ final class Ship_Modal
         if (! current_user_can('manage_options') || ! current_user_can('edit_post', $post_id)) {
             return;
         }
+
+        // チェックボックスは未チェック時にPOST自体が送信されないため、値を先に確定する。
+        // 内容側でエラーが発生しても、表示設定が意図せず戻らないようにする。
+        $show_close = ! empty($_POST['ship_modal_show_close']) ? '1' : '0';
+        $close_overlay = ! empty($_POST['ship_modal_close_overlay']) ? '1' : '0';
+        update_post_meta($post_id, '_ship_modal_show_close', $show_close);
+        update_post_meta($post_id, '_ship_modal_close_overlay', $close_overlay);
 
         $errors = array();
         $type = isset($_POST['ship_modal_content_type']) ? sanitize_key(wp_unslash($_POST['ship_modal_content_type'])) : $this->meta($post_id, 'content_type', 'image');
@@ -525,8 +531,8 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_trigger_text_color', $trigger_text_color ?: '#ffffff');
         update_post_meta($post_id, '_ship_modal_delay', isset($_POST['ship_modal_delay']) ? min(120, max(0, absint($_POST['ship_modal_delay']))) : 2);
         update_post_meta($post_id, '_ship_modal_scroll_threshold', isset($_POST['ship_modal_scroll_threshold']) ? min(95, max(10, absint($_POST['ship_modal_scroll_threshold']))) : 50);
-        update_post_meta($post_id, '_ship_modal_show_close', isset($_POST['ship_modal_show_close']) ? '1' : '0');
-        update_post_meta($post_id, '_ship_modal_close_overlay', isset($_POST['ship_modal_close_overlay']) ? '1' : '0');
+        update_post_meta($post_id, '_ship_modal_show_close', $show_close);
+        update_post_meta($post_id, '_ship_modal_close_overlay', $close_overlay);
         update_post_meta($post_id, '_ship_modal_pages', $pages);
         update_post_meta($post_id, '_ship_modal_border_radius', $border_radius);
         update_post_meta($post_id, '_ship_modal_padding', $padding);
