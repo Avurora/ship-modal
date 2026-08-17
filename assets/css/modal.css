@@ -57,3 +57,15 @@
 .ship-modal__pager{border-color:var(--ship-modal-border,#e2e8f0)!important}
 .ship-modal__pager-arrow,.ship-modal__pager-dot{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-secondary-text,#0f172a)!important}
 .ship-modal__pager-dot.is-active,.ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:#fff!important}
+
+/* ダイアログと内部スクロール領域の上限を揃え、余分なスクロールを防ぐ。 */
+.ship-modal__content{
+  max-height:calc(100dvh - 32px);
+  overscroll-behavior:contain;
+}
+.ship-modal__dialog{overscroll-behavior:contain}
+.ship-modal--side .ship-modal__content{max-height:calc(100dvh - 48px)}
+@media (max-width:767px){
+  .ship-modal__content{max-height:88dvh}
+  .ship-modal--side .ship-modal__content{max-height:calc(100dvh - 48px)}
+}
