@@ -288,7 +288,7 @@ final class Ship_Modal
                     <p class="description">公開中のページ・記事だけが検索対象です。指定ページのみを選んだ場合、ここで選択したページにだけ表示されます。</p>
                 </div>
             </td></tr>
-            <tr><th><label for="ship-modal-trigger">起動方法</label></th><td><?php $this->select('trigger', $trigger, array('auto' => '遅延して自動表示', 'scroll' => 'スクロール到達で表示', 'exit_intent' => '離脱意図で表示（PCのみ）', 'manual' => 'ボタンから表示')); ?><p class="description">戻るボタンの履歴フックは、誤操作・アクセシビリティ・検索評価への影響があるため対応していません。</p></td></tr>
+            <tr><th><label for="ship-modal-trigger">起動方法</label></th><td><?php $this->select('trigger', $trigger, array('auto' => '遅延して自動表示', 'scroll' => 'スクロール到達で表示', 'exit_intent' => '離脱意図で表示（PCのみ）', 'manual' => 'ボタンから表示')); ?><p class="description">離脱意図は、PCでマウスをブラウザ上端へ移動したタイミングで表示します。戻るボタンの履歴フックは、誤操作・アクセシビリティ・検索評価への影響があるため対応していません。</p></td></tr>
             <tr class="ship-modal-delay-row"><th><label for="ship-modal-delay">表示までの秒数</label></th><td><input type="number" min="0" max="120" step="1" class="small-text" name="ship_modal_delay" id="ship-modal-delay" value="<?php echo esc_attr($delay); ?>"> 秒</td></tr>
             <tr class="ship-modal-scroll-row"><th><label for="ship-modal-scroll_threshold">スクロール到達率</label></th><td><input type="number" min="10" max="95" step="5" class="small-text" name="ship_modal_scroll_threshold" id="ship-modal-scroll_threshold" value="<?php echo esc_attr($scroll_threshold); ?>"> ％<p class="description">ページ全体の指定割合までスクロールすると表示します。</p></td></tr>
             <tr class="ship-modal-trigger-text-row"><th><label for="ship-modal-trigger_text">ボタン文言</label></th><td><input type="text" class="widefat" name="ship_modal_trigger_text" id="ship-modal-trigger_text" value="<?php echo esc_attr($trigger_text); ?>"></td></tr>

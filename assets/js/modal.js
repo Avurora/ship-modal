@@ -216,10 +216,11 @@
   }
 
   function bindExitIntentTrigger(modal) {
-    if (!window.matchMedia || !window.matchMedia('(pointer: fine)').matches) return;
+    var hasFinePointer = window.matchMedia && (window.matchMedia('(pointer: fine)').matches || window.matchMedia('(hover: hover)').matches);
+    if (!hasFinePointer || window.innerWidth < 768) return;
     var fired = false;
     function evaluate(event) {
-      if (fired || event.clientY > 0 || event.relatedTarget) return;
+      if (fired || event.clientY > 10 || event.relatedTarget) return;
       fired = true;
       document.removeEventListener('mouseout', evaluate);
       openModal(modal);
