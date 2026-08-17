@@ -464,7 +464,7 @@ final class Ship_Modal
             return;
         }
         wp_enqueue_media();
-        wp_enqueue_script('ship-modal-admin', SHIP_MODAL_URL . 'assets/js/admin.js', array('jquery'), SHIP_MODAL_VERSION, true);
+        wp_enqueue_script('ship-modal-admin', SHIP_MODAL_URL . 'assets/js/admin.js', array('jquery', 'media-views'), SHIP_MODAL_VERSION, true);
         wp_enqueue_style('ship-modal-admin', SHIP_MODAL_URL . 'assets/css/admin.css', array(), SHIP_MODAL_VERSION);
     }
 
