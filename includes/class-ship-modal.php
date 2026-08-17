@@ -261,6 +261,12 @@ final class Ship_Modal
         $pages = $this->meta($post->ID, 'pages', array());
         $form_state_key = 'ship_modal_form_' . get_current_user_id() . '_' . $post->ID;
         $form_state = get_transient($form_state_key);
+        if (! is_array($form_state)) {
+            $form_state = get_post_meta($post->ID, '_ship_modal_form_state_' . get_current_user_id(), true);
+            if (is_array($form_state)) {
+                delete_post_meta($post->ID, '_ship_modal_form_state_' . get_current_user_id());
+            }
+        }
         if (is_array($form_state)) {
             delete_transient($form_state_key);
             $type = isset($form_state['type']) ? $form_state['type'] : $type;
@@ -513,7 +519,8 @@ final class Ship_Modal
         }
 
         if ($errors) {
-            set_transient('ship_modal_form_' . get_current_user_id() . '_' . $post_id, array(
+            $form_key = 'ship_modal_form_' . get_current_user_id() . '_' . $post_id;
+            $form_state = array(
                 'type' => $type,
                 'html' => $html,
                 'heading' => $heading,
@@ -522,12 +529,20 @@ final class Ship_Modal
                 'link_url' => isset($_POST['ship_modal_link_url']) ? esc_url_raw(wp_unslash($_POST['ship_modal_link_url'])) : $this->meta($post_id, 'link_url', ''),
                 'buttons' => isset($_POST['ship_modal_buttons']) && is_array($_POST['ship_modal_buttons']) ? wp_unslash($_POST['ship_modal_buttons']) : $buttons,
                 'pages' => isset($_POST['ship_modal_pages']) && is_array($_POST['ship_modal_pages']) ? wp_unslash($_POST['ship_modal_pages']) : $pages,
-            ), 60);
-            set_transient('ship_modal_errors_' . get_current_user_id() . '_' . $post_id, $errors, 60);
+            );
+            if (! set_transient($form_key, $form_state, 60)) {
+                update_post_meta($post_id, '_ship_modal_form_state_' . get_current_user_id(), $form_state);
+            }
+            $error_key = 'ship_modal_errors_' . get_current_user_id() . '_' . $post_id;
+            if (! set_transient($error_key, $errors, 60)) {
+                update_post_meta($post_id, '_ship_modal_errors_' . get_current_user_id(), $errors);
+            }
             return;
         }
 
         delete_transient('ship_modal_form_' . get_current_user_id() . '_' . $post_id);
+        delete_post_meta($post_id, '_ship_modal_form_state_' . get_current_user_id());
+        delete_post_meta($post_id, '_ship_modal_errors_' . get_current_user_id());
 
         foreach (array('link_url', 'trigger_text', 'start_at', 'end_at') as $field) {
             $value = isset($_POST['ship_modal_' . $field]) ? wp_unslash($_POST['ship_modal_' . $field]) : '';
@@ -582,6 +597,12 @@ final class Ship_Modal
         }
         $key = 'ship_modal_errors_' . get_current_user_id() . '_' . absint($_GET['post']);
         $errors = get_transient($key);
+        if (! is_array($errors)) {
+            $errors = get_post_meta(absint($_GET['post']), '_ship_modal_errors_' . get_current_user_id(), true);
+            if (is_array($errors)) {
+                delete_post_meta(absint($_GET['post']), '_ship_modal_errors_' . get_current_user_id());
+            }
+        }
         if (! is_array($errors) || ! $errors) {
             return;
         }
