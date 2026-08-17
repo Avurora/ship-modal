@@ -33,3 +33,9 @@
 .ship-modal__page-media{
   text-align:center;
 }
+
+/* 画像の角丸はコンテンツ内だけをクリップし、ダイアログ外の閉じるボタンは残す。 */
+.ship-modal__content{
+  overflow:hidden auto;
+  border-radius:var(--ship-modal-radius,0px);
+}
