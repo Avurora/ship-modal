@@ -9,6 +9,7 @@
     $('.ship-modal-hybrid-image-row').toggle(type === 'hybrid');
     $('.ship-modal-buttons-row').toggle(type === 'hybrid' || type === 'text');
     $('.ship-modal-pages-row').toggle(type === 'pager');
+    $('.ship-modal-target-pages-row').toggle($('#ship-modal-scope').val() === 'selected');
     $('#ship-modal-body').attr('maxlength', type === 'text' ? '120' : '80');
     $('.ship-modal-delay-row').toggle($('#ship-modal-trigger').val() === 'auto');
     $('.ship-modal-trigger-text-row').toggle($('#ship-modal-trigger').val() === 'manual');
@@ -32,7 +33,7 @@
     refreshRows();
     $('[maxlength]').each(function () { updateCounter(this); });
     $(document).on('input', '[maxlength]', function () { updateCounter(this); });
-    $('#ship-modal-content_type, #ship-modal-trigger').on('change', refreshRows);
+    $('#ship-modal-content_type, #ship-modal-trigger, #ship-modal-scope').on('change', refreshRows);
     var frame;
     function selectImage(targetId, previewId) {
       var currentFrame = frame;

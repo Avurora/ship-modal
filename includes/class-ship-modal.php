@@ -93,6 +93,30 @@ final class Ship_Modal
         echo '</select>';
     }
 
+    private function targetable_post_types()
+    {
+        $types = get_post_types(array('public' => true), 'objects');
+        foreach (array('attachment', 'ship_modal') as $excluded_type) {
+            unset($types[$excluded_type]);
+        }
+        return $types;
+    }
+
+    private function targetable_posts()
+    {
+        $post_types = array_keys($this->targetable_post_types());
+        if (! $post_types) {
+            return array();
+        }
+        return get_posts(array(
+            'post_type' => $post_types,
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => array('post_type' => 'ASC', 'title' => 'ASC'),
+            'order' => 'ASC',
+        ));
+    }
+
     private function render_page_row($index, $page = array())
     {
         $image_id = isset($page['image_id']) ? absint($page['image_id']) : 0;
@@ -165,6 +189,9 @@ final class Ship_Modal
         if (! is_array($pages) || ! $pages) {
             $pages = array(array());
         }
+        $border_radius = min(48, max(0, (int) $this->meta($post->ID, 'border_radius', 0)));
+        $padding = min(64, max(0, (int) $this->meta($post->ID, 'padding', 20)));
+        $max_width = min(1200, max(280, (int) $this->meta($post->ID, 'max_width', 620)));
         ?>
         <p class="description">HTML、画像バナー、画像＋HTML、複数ページのページャーから選べます。ページャーは各ページに画像とHTMLを設定できます。</p>
         <table class="form-table ship-modal-form-table">
@@ -186,6 +213,9 @@ final class Ship_Modal
             <tr class="ship-modal-buttons-row"><th>ボタン</th><td><p class="description">画像＋ボタン：1〜3個 / テキスト＋ボタン：1〜3個</p><?php $this->render_button_fields($buttons, 3, 'ship_modal_buttons'); ?></td></tr>
             <tr class="ship-modal-pages-row"><th>ページ</th><td><div id="ship-modal-pages"><?php foreach ($pages as $index => $page) { $this->render_page_row($index, is_array($page) ? $page : array()); } ?></div><p><button type="button" class="button" id="ship-modal-add-page">＋ ページを追加</button></p><p class="description">各ページは画像とHTMLを個別に設定できます。</p></td></tr>
             <tr><th><label for="ship-modal-design">デザイン</label></th><td><?php $this->select('design', $design, array('center' => '中央カード', 'bottom' => '画面下部バナー', 'side' => '右下ポップアップ', 'fullscreen' => 'フルスクリーン')); ?></td></tr>
+            <tr><th><label for="ship-modal-border_radius">角丸（border-radius）</label></th><td><input type="number" min="0" max="48" step="1" class="small-text" name="ship_modal_border_radius" id="ship-modal-border_radius" value="<?php echo esc_attr($border_radius); ?>"> px <p class="description">0〜48px。0なら角丸なし。</p></td></tr>
+            <tr><th><label for="ship-modal-padding">内側の余白（padding）</label></th><td><input type="number" min="0" max="64" step="1" class="small-text" name="ship_modal_padding" id="ship-modal-padding" value="<?php echo esc_attr($padding); ?>"> px <p class="description">0〜64px。画像のみフレームは画像をコンテナいっぱいに表示します。</p></td></tr>
+            <tr><th><label for="ship-modal-max_width">最大幅（max-width）</label></th><td><input type="number" min="280" max="1200" step="10" class="small-text" name="ship_modal_max_width" id="ship-modal-max_width" value="<?php echo esc_attr($max_width); ?>"> px <p class="description">280〜1200px。スマホでは画面幅に合わせて縮小します。</p></td></tr>
         </table>
         <script type="text/html" id="ship-modal-page-template"><?php $this->render_page_row('__INDEX__', array()); ?></script>
         <?php
@@ -202,9 +232,17 @@ final class Ship_Modal
         $show_close = $this->meta($post->ID, 'show_close', '1');
         $close_overlay = $this->meta($post->ID, 'close_overlay', '1');
         $trigger_text = $this->meta($post->ID, 'trigger_text', 'キャンペーン詳細を見る');
+        $target_ids = array_values(array_filter(array_map('absint', (array) $this->meta($post->ID, 'target_ids', array()))));
+        $targetable_posts = $this->targetable_posts();
+        $targetable_types = $this->targetable_post_types();
         ?>
         <table class="form-table ship-modal-form-table">
-            <tr><th><label for="ship-modal-scope">表示範囲</label></th><td><?php $this->select('scope', $scope, array('all' => '全ページ', 'front' => 'トップページのみ', 'singular' => '投稿・固定ページ', 'shortcode' => 'ショートコードのみ')); ?></td></tr>
+            <tr><th><label for="ship-modal-scope">表示範囲</label></th><td><?php $this->select('scope', $scope, array('all' => '全ページ', 'front' => 'トップページのみ', 'singular' => '投稿・固定ページ（全て）', 'selected' => '指定したページのみ', 'shortcode' => 'ショートコードのみ')); ?></td></tr>
+            <tr class="ship-modal-target-pages-row"><th><label for="ship-modal-target_ids">表示するページ</label></th><td><select name="ship_modal_target_ids[]" id="ship-modal-target_ids" class="widefat" multiple size="8">
+                <?php foreach ($targetable_posts as $target_post) : $target_type = get_post_type($target_post); $target_type_label = isset($targetable_types[$target_type]) ? $targetable_types[$target_type]->labels->singular_name : $target_type; ?>
+                    <option value="<?php echo esc_attr($target_post->ID); ?>" <?php selected(in_array((int) $target_post->ID, $target_ids, true), true); ?>><?php echo esc_html('[' . $target_type_label . '] ' . get_the_title($target_post)); ?></option>
+                <?php endforeach; ?>
+            </select><p class="description">Ctrl / ⌘キーで複数選択できます。公開中の固定ページ・投稿・公開カスタム投稿タイプを取得しています。</p></td></tr>
             <tr><th><label for="ship-modal-trigger">起動方法</label></th><td><?php $this->select('trigger', $trigger, array('auto' => '自動表示', 'manual' => 'ボタンから表示')); ?></td></tr>
             <tr class="ship-modal-delay-row"><th><label for="ship-modal-delay">表示までの秒数</label></th><td><input type="number" min="0" max="120" step="1" class="small-text" name="ship_modal_delay" id="ship-modal-delay" value="<?php echo esc_attr($delay); ?>"> 秒</td></tr>
             <tr class="ship-modal-trigger-text-row"><th><label for="ship-modal-trigger_text">ボタン文言</label></th><td><input type="text" class="widefat" name="ship_modal_trigger_text" id="ship-modal-trigger_text" value="<?php echo esc_attr($trigger_text); ?>"></td></tr>
@@ -297,6 +335,10 @@ final class Ship_Modal
         $image_id = isset($_POST['ship_modal_image_id']) ? absint($_POST['ship_modal_image_id']) : 0;
         $buttons = $this->normalize_buttons(isset($_POST['ship_modal_buttons']) ? $_POST['ship_modal_buttons'] : array(), 3, 'ボタン', $errors);
 
+        $border_radius = isset($_POST['ship_modal_border_radius']) ? min(48, max(0, absint($_POST['ship_modal_border_radius']))) : 0;
+        $padding = isset($_POST['ship_modal_padding']) ? min(64, max(0, absint($_POST['ship_modal_padding']))) : 20;
+        $max_width = isset($_POST['ship_modal_max_width']) ? min(1200, max(280, absint($_POST['ship_modal_max_width']))) : 620;
+
         if ('image' === $type && ! $image_id) {
             $errors[] = '画像のみフレームは画像が必須です。';
         }
@@ -366,11 +408,24 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_show_close', isset($_POST['ship_modal_show_close']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_close_overlay', isset($_POST['ship_modal_close_overlay']) ? '1' : '0');
         update_post_meta($post_id, '_ship_modal_pages', $pages);
+        update_post_meta($post_id, '_ship_modal_border_radius', $border_radius);
+        update_post_meta($post_id, '_ship_modal_padding', $padding);
+        update_post_meta($post_id, '_ship_modal_max_width', $max_width);
+        $target_ids = array();
+        $raw_target_ids = isset($_POST['ship_modal_target_ids']) && is_array($_POST['ship_modal_target_ids']) ? $_POST['ship_modal_target_ids'] : array();
+        $targetable_types = $this->targetable_post_types();
+        foreach (array_unique(array_map('absint', wp_unslash($raw_target_ids))) as $target_id) {
+            $target_post = $target_id ? get_post($target_id) : null;
+            if ($target_post && 'publish' === $target_post->post_status && isset($targetable_types[$target_post->post_type])) {
+                $target_ids[] = $target_id;
+            }
+        }
+        update_post_meta($post_id, '_ship_modal_target_ids', $target_ids);
         $allowed = array(
             'content_type' => $allowed_types,
             'image_position' => array('top', 'left', 'right'),
             'design' => array('center', 'bottom', 'side', 'fullscreen'),
-            'scope' => array('all', 'front', 'singular', 'shortcode'),
+            'scope' => array('all', 'front', 'singular', 'selected', 'shortcode'),
             'trigger' => array('auto', 'manual'),
             'frequency' => array('always', 'session', 'day', 'once'),
         );
@@ -420,7 +475,7 @@ final class Ship_Modal
     public function render_admin_column($column, $post_id)
     {
         if ('ship_modal_scope' === $column) {
-            $labels = array('all' => '全ページ', 'front' => 'トップ', 'singular' => '投稿・固定ページ', 'shortcode' => 'ショートコード');
+            $labels = array('all' => '全ページ', 'front' => 'トップ', 'singular' => '投稿・固定ページ（全て）', 'selected' => '指定ページ', 'shortcode' => 'ショートコード');
             $scope = $this->meta($post_id, 'scope', 'all');
             echo esc_html(isset($labels[$scope]) ? $labels[$scope] : $scope);
         } elseif ('ship_modal_schedule' === $column) {
@@ -457,6 +512,10 @@ final class Ship_Modal
         }
         if ('singular' === $scope && ! is_singular()) {
             return false;
+        }
+        if ('selected' === $scope) {
+            $target_ids = array_values(array_filter(array_map('absint', (array) $this->meta($post_id, 'target_ids', array()))));
+            return is_singular() && in_array((int) get_queried_object_id(), $target_ids, true);
         }
         return true;
     }
@@ -556,6 +615,10 @@ final class Ship_Modal
         $heading = $this->meta($post_id, 'heading');
         $body = $this->meta($post_id, 'body');
         $buttons = $this->meta($post_id, 'buttons', array());
+        $border_radius = min(48, max(0, (int) $this->meta($post_id, 'border_radius', 0)));
+        $padding = min(64, max(0, (int) $this->meta($post_id, 'padding', 20)));
+        $max_width = min(1200, max(280, (int) $this->meta($post_id, 'max_width', 620)));
+        $modal_style = '--ship-modal-radius:' . $border_radius . 'px;--ship-modal-padding:' . $padding . 'px;--ship-modal-max-width:' . $max_width . 'px;';
         $modal_id = 'ship-modal-' . absint($post_id) . '-' . wp_rand(100, 999);
         $content = '';
         $content_class = '';
@@ -607,7 +670,7 @@ final class Ship_Modal
             echo '<button type="button" class="' . esc_attr($trigger_class) . '" data-ship-modal-target="' . esc_attr($modal_id) . '">' . esc_html($button_text) . '</button>';
         }
         ?>
-        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" data-post-id="<?php echo absint($post_id); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
+        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
             <div class="ship-modal__backdrop" data-ship-modal-close></div>
             <div class="ship-modal__dialog" role="document">
                 <h2 id="<?php echo esc_attr($modal_id); ?>-title" class="screen-reader-text"><?php echo esc_html($title); ?></h2>
