@@ -837,9 +837,8 @@ final class Ship_Modal
         $theme_colors = $this->theme_colors($post_id);
         $modal_style = '--ship-modal-radius:' . $border_radius . 'px;--ship-modal-padding:' . $padding . 'px;--ship-modal-max-width:' . $max_width . 'px;'
             . '--ship-modal-surface:' . $theme_colors['surface'] . ';--ship-modal-accent:' . $theme_colors['accent'] . ';'
-            . '--ship-modal-heading:' . $theme_colors['text'] . ';--ship-modal-text:' . $theme_colors['text'] . ';'
-            . '--ship-modal-muted:' . $theme_colors['text'] . ';--ship-modal-border:#e2e8f0;'
-            . '--ship-modal-secondary:#f1f5f9;--ship-modal-secondary-text:' . $theme_colors['text'] . ';'
+            . '--ship-modal-text:' . $theme_colors['text'] . ';--ship-modal-border:#e2e8f0;'
+            . '--ship-modal-secondary:#f1f5f9;'
             . '--ship-modal-close-bg:' . $theme_colors['accent'] . ';--ship-modal-close-text:' . $theme_colors['surface'] . ';'
             . '--ship-modal-overlay:rgba(15,23,42,.45);';
         $modal_id = 'ship-modal-' . absint($post_id) . '-' . wp_rand(100, 999);
