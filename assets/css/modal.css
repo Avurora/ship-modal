@@ -43,21 +43,60 @@
 /* 管理画面で設定したテーマカラーを各パーツへ反映する。 */
 .ship-modal__dialog{background:var(--ship-modal-surface,#fff)!important}
 .ship-modal__content,.ship-modal__hybrid-html,.ship-modal__page-html{color:var(--ship-modal-text,#334155)!important}
-.ship-modal__content h1,.ship-modal__content h2,.ship-modal__content h3,.ship-modal__content h4,.ship-modal__content h5,.ship-modal__content h6,.ship-modal__hybrid-html h1,.ship-modal__hybrid-html h2,.ship-modal__hybrid-html h3,.ship-modal__hybrid-html h4,.ship-modal__hybrid-html h5,.ship-modal__hybrid-html h6,.ship-modal__page-html h1,.ship-modal__page-html h2,.ship-modal__page-html h3,.ship-modal__page-html h4,.ship-modal__page-html h5,.ship-modal__page-html h6{color:var(--ship-modal-heading,#0f172a)!important}
+.ship-modal__content h1,.ship-modal__content h2,.ship-modal__content h3,.ship-modal__content h4,.ship-modal__content h5,.ship-modal__content h6,.ship-modal__hybrid-html h1,.ship-modal__hybrid-html h2,.ship-modal__hybrid-html h3,.ship-modal__hybrid-html h4,.ship-modal__hybrid-html h5,.ship-modal__hybrid-html h6,.ship-modal__page-html h1,.ship-modal__page-html h2,.ship-modal__page-html h3,.ship-modal__page-html h4,.ship-modal__page-html h5,.ship-modal__page-html h6{color:var(--ship-modal-text,#334155)!important}
 .ship-modal__content h2,.ship-modal__hybrid-html h2,.ship-modal__page-html h2{border-color:var(--ship-modal-accent,#0f766e)!important}
 .ship-modal__content a:not(.ship-modal__link),.ship-modal__hybrid-html a,.ship-modal__page-html a{color:var(--ship-modal-accent,#0f766e)!important}
-.ship-modal__content strong,.ship-modal__hybrid-html strong,.ship-modal__page-html strong{color:var(--ship-modal-heading,#0f172a)!important}
-.ship-modal__content figcaption,.ship-modal__hybrid-html figcaption,.ship-modal__page-html figcaption{color:var(--ship-modal-muted,#64748b)!important}
-.ship-modal__content th,.ship-modal__hybrid-html th,.ship-modal__page-html th{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-heading,#0f172a)!important}
+.ship-modal__content strong,.ship-modal__hybrid-html strong,.ship-modal__page-html strong{color:var(--ship-modal-text,#334155)!important}
+.ship-modal__content figcaption,.ship-modal__hybrid-html figcaption,.ship-modal__page-html figcaption{color:var(--ship-modal-text,#334155)!important}
+.ship-modal__content th,.ship-modal__hybrid-html th,.ship-modal__page-html th{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-text,#334155)!important}
 .ship-modal__content th,.ship-modal__content td,.ship-modal__hybrid-html th,.ship-modal__hybrid-html td,.ship-modal__page-html th,.ship-modal__page-html td{border-color:var(--ship-modal-border,#e2e8f0)!important}
 .ship-modal__backdrop{background:var(--ship-modal-overlay,rgba(15,23,42,.45))!important}
 .ship-modal__close{background:var(--ship-modal-close-bg,#0f172a)!important;color:var(--ship-modal-close-text,#fff)!important}
 .ship-modal__button--primary,.ship-modal__content .wp-block-button__link,.ship-modal__content a.button,.ship-modal__content button:not(.ship-modal__close){background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
-.ship-modal__button--secondary{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-secondary-text,#0f172a)!important}
+.ship-modal__button--secondary{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-text,#334155)!important}
 .ship-modal__pager{border-color:var(--ship-modal-border,#e2e8f0)!important}
 .ship-modal__pager-arrow,.ship-modal__pager-dot{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-secondary-text,#0f172a)!important}
 .ship-modal__pager-dot.is-active,.ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 .ship-modal__content--pager-image-only .ship-modal__pager{margin-top:0;padding-top:0;border-top:0}
+
+/* 本文色は画像＋HTMLを含む全フレームで同じテーマカラーを使う。 */
+.ship-modal .ship-modal__content p,
+.ship-modal .ship-modal__content li,
+.ship-modal .ship-modal__content td,
+.ship-modal .ship-modal__content th,
+.ship-modal .ship-modal__content h1,
+.ship-modal .ship-modal__content h2,
+.ship-modal .ship-modal__content h3,
+.ship-modal .ship-modal__content h4,
+.ship-modal .ship-modal__content h5,
+.ship-modal .ship-modal__content h6,
+.ship-modal .ship-modal__content strong,
+.ship-modal .ship-modal__content figcaption,
+.ship-modal .ship-modal__hybrid-html p,
+.ship-modal .ship-modal__hybrid-html li,
+.ship-modal .ship-modal__hybrid-html td,
+.ship-modal .ship-modal__hybrid-html th,
+.ship-modal .ship-modal__hybrid-html h1,
+.ship-modal .ship-modal__hybrid-html h2,
+.ship-modal .ship-modal__hybrid-html h3,
+.ship-modal .ship-modal__hybrid-html h4,
+.ship-modal .ship-modal__hybrid-html h5,
+.ship-modal .ship-modal__hybrid-html h6,
+.ship-modal .ship-modal__hybrid-html strong,
+.ship-modal .ship-modal__hybrid-html figcaption,
+.ship-modal .ship-modal__page-html p,
+.ship-modal .ship-modal__page-html li,
+.ship-modal .ship-modal__page-html td,
+.ship-modal .ship-modal__page-html th,
+.ship-modal .ship-modal__page-html h1,
+.ship-modal .ship-modal__page-html h2,
+.ship-modal .ship-modal__page-html h3,
+.ship-modal .ship-modal__page-html h4,
+.ship-modal .ship-modal__page-html h5,
+.ship-modal .ship-modal__page-html h6,
+.ship-modal .ship-modal__page-html strong,
+.ship-modal .ship-modal__page-html figcaption{color:var(--ship-modal-text,#334155)!important}
+
 @media (max-width:767px){
   .ship-modal__pager{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;gap:8px;align-items:center;overflow:hidden}
   .ship-modal__pager-arrow{width:36px;height:32px;padding:0;font-size:0;line-height:1}
