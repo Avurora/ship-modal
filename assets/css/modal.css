@@ -52,11 +52,11 @@
 .ship-modal__content th,.ship-modal__content td,.ship-modal__hybrid-html th,.ship-modal__hybrid-html td,.ship-modal__page-html th,.ship-modal__page-html td{border-color:var(--ship-modal-border,#e2e8f0)!important}
 .ship-modal__backdrop{background:var(--ship-modal-overlay,rgba(15,23,42,.45))!important}
 .ship-modal__close{background:var(--ship-modal-close-bg,#0f172a)!important;color:var(--ship-modal-close-text,#fff)!important}
-.ship-modal__button--primary,.ship-modal__content .wp-block-button__link,.ship-modal__content a.button,.ship-modal__content button:not(.ship-modal__close){background:var(--ship-modal-accent,#0f766e)!important;color:#fff!important}
+.ship-modal__button--primary,.ship-modal__content .wp-block-button__link,.ship-modal__content a.button,.ship-modal__content button:not(.ship-modal__close){background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 .ship-modal__button--secondary{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-secondary-text,#0f172a)!important}
 .ship-modal__pager{border-color:var(--ship-modal-border,#e2e8f0)!important}
 .ship-modal__pager-arrow,.ship-modal__pager-dot{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-secondary-text,#0f172a)!important}
-.ship-modal__pager-dot.is-active,.ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:#fff!important}
+.ship-modal__pager-dot.is-active,.ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 
 /* ダイアログと内部スクロール領域の上限を揃え、余分なスクロールを防ぐ。 */
 .ship-modal__content{
