@@ -756,7 +756,7 @@ final class Ship_Modal
         if (! is_array($buttons) || ! $buttons) {
             return '';
         }
-        $markup = '<div class="ship-modal__buttons">';
+        $markup = '';
         foreach ($buttons as $button) {
             if (! is_array($button) || empty($button['label'])) {
                 continue;
@@ -775,7 +775,27 @@ final class Ship_Modal
                 $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" data-ship-modal-action="button" data-ship-modal-label="' . $label_attr . '" href="' . esc_url($button['url']) . '"' . $target . '>' . $label . '</a>';
             }
         }
-        return $markup . '</div>';
+        return $markup ? '<div class="ship-modal__buttons">' . $markup . '</div>' : '';
+    }
+
+    private function page_has_copy($page)
+    {
+        if (! is_array($page)) {
+            return false;
+        }
+        $heading = isset($page['heading']) ? trim(wp_strip_all_tags((string) $page['heading'])) : '';
+        $body = isset($page['body']) ? $page['body'] : (isset($page['html']) ? $page['html'] : '');
+        if ($heading !== '' || trim(wp_strip_all_tags((string) $body)) !== '') {
+            return true;
+        }
+        if (! empty($page['buttons']) && is_array($page['buttons'])) {
+            foreach ($page['buttons'] as $button) {
+                if (is_array($button) && trim(wp_strip_all_tags(isset($button['label']) ? (string) $button['label'] : '')) !== '') {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private function render_page_content($page, $title, $index)
@@ -786,7 +806,11 @@ final class Ship_Modal
         $body = isset($page['body']) ? $page['body'] : (isset($page['html']) ? wp_strip_all_tags($page['html']) : '');
         $buttons = isset($page['buttons']) ? $page['buttons'] : array();
         $copy = ($heading ? '<h3>' . esc_html($heading) . '</h3>' : '') . ($body ? '<p>' . wp_kses($body, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true))) . '</p>' : '') . $this->render_button_markup($buttons);
-        return '<div class="ship-modal__page-media">' . $image . '</div><div class="ship-modal__page-html">' . $copy . '</div>';
+        $markup = $image ? '<div class="ship-modal__page-media">' . $image . '</div>' : '';
+        if ($copy !== '') {
+            $markup .= '<div class="ship-modal__page-html">' . $copy . '</div>';
+        }
+        return $markup;
     }
 
     private function render_modal($post_id, $shortcode = false)
@@ -840,12 +864,16 @@ final class Ship_Modal
                 $pages = array();
             }
             $pages = array_filter($pages, function ($page) {
-                return is_array($page) && (! empty($page['image_id']) || ! empty($page['html']));
+                return is_array($page) && (! empty($page['image_id']) || $this->page_has_copy($page));
             });
             $pages = array_values($pages);
             if ($pages) {
                 $page_markup = '';
+                $pager_has_copy = false;
                 foreach ($pages as $index => $page) {
+                    if ($this->page_has_copy($page)) {
+                        $pager_has_copy = true;
+                    }
                     $page_markup .= '<section class="ship-modal__page' . (0 === $index ? ' is-active' : '') . '" data-ship-modal-page-panel="' . esc_attr($index) . '"' . (0 === $index ? '' : ' hidden') . ' aria-hidden="' . (0 === $index ? 'false' : 'true') . '">' . $this->render_page_content($page, $title, $index) . '</section>';
                 }
                 $controls = '<nav class="ship-modal__pager" aria-label="モーダルページ切り替え"><button type="button" class="ship-modal__pager-arrow" data-ship-modal-page-prev disabled>前へ</button><div class="ship-modal__pager-dots">';
@@ -854,7 +882,7 @@ final class Ship_Modal
                 }
                 $controls .= '</div><button type="button" class="ship-modal__pager-arrow" data-ship-modal-page-next' . (count($pages) < 2 ? ' disabled' : '') . '>次へ</button></nav>';
                 $content = '<div class="ship-modal__pages" data-ship-modal-page-count="' . esc_attr(count($pages)) . '">' . $page_markup . $controls . '</div>';
-                $content_class = ' ship-modal__content--pager';
+                $content_class = ' ship-modal__content--pager' . ($pager_has_copy ? '' : ' ship-modal__content--pager-image-only');
             }
         } else {
             $content = wp_kses_post($this->meta($post_id, 'html'));
