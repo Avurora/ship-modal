@@ -58,6 +58,16 @@
 .ship-modal__pager-arrow,.ship-modal__pager-dot{background:var(--ship-modal-secondary,#e2e8f0)!important;color:var(--ship-modal-secondary-text,#0f172a)!important}
 .ship-modal__pager-dot.is-active,.ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 .ship-modal__content--pager-image-only .ship-modal__pager{margin-top:0;padding-top:0;border-top:0}
+@media (max-width:767px){
+  .ship-modal__pager{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;gap:8px;align-items:center;overflow:hidden}
+  .ship-modal__pager-arrow{width:36px;height:32px;padding:0;font-size:0;line-height:1}
+  .ship-modal__pager-arrow::before{font-size:22px;line-height:1}
+  .ship-modal__pager-arrow[data-ship-modal-page-prev]::before{content:'‹'}
+  .ship-modal__pager-arrow[data-ship-modal-page-next]::before{content:'›'}
+  .ship-modal__pager-dots{min-width:0;flex-wrap:nowrap;overflow-x:auto;justify-content:center;gap:5px;padding:4px 0;scrollbar-width:none}
+  .ship-modal__pager-dots::-webkit-scrollbar{display:none}
+  .ship-modal__pager-dot{flex:0 0 9px;width:9px;height:9px;padding:0;border-radius:50%;font-size:0}
+}
 
 /* ダイアログと内部スクロール領域の上限を揃え、余分なスクロールを防ぐ。 */
 .ship-modal__content{
