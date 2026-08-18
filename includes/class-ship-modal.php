@@ -143,6 +143,11 @@ final class Ship_Modal
     {
         $colors = array();
         foreach ($this->theme_color_defaults() as $key => $default) {
+            // モーダル本体の背景は視認性・可読性確保のため白固定。
+            if ('surface' === $key) {
+                $colors[$key] = '#ffffff';
+                continue;
+            }
             $colors[$key] = sanitize_hex_color($this->meta($post_id, 'theme_' . $key, $default)) ?: $default;
         }
         return $colors;
@@ -399,11 +404,10 @@ final class Ship_Modal
             <tr><th><label for="ship-modal-end_at">終了日時</label></th><td><input type="datetime-local" class="widefat" name="ship_modal_end_at" id="ship-modal-end_at" value="<?php echo esc_attr($end); ?>"><p class="description">空欄なら期限なし</p></td></tr>
             <tr><th>テーマカラー</th><td>
                 <div class="ship-modal-color-grid">
-                    <label>コンテナ背景 <input type="color" name="ship_modal_theme_surface" value="<?php echo esc_attr($theme_colors['surface']); ?>"></label>
                     <label>メインカラー <input type="color" name="ship_modal_theme_accent" value="<?php echo esc_attr($theme_colors['accent']); ?>"></label>
                     <label>文字色 <input type="color" name="ship_modal_theme_text" value="<?php echo esc_attr($theme_colors['text']); ?>"></label>
                 </div>
-                <p class="description">3色だけで設定できます。メインカラーはリンク・主ボタン・閉じるボタンに、背景色はカードと主ボタンの文字に、文字色は本文・見出し・サブボタンに反映されます。保存後に公開ページで確認してください。</p>
+                <p class="description">背景は白固定です。メインカラーはリンク・主ボタン・閉じるボタンに、文字色は本文・見出し・サブボタンに反映されます。保存後に公開ページで確認してください。</p>
             </td></tr>
             <tr><th>閉じる操作</th><td><input type="hidden" name="ship_modal_show_close" value="0"><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><input type="hidden" name="ship_modal_close_overlay" value="0"><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label><p class="description">チェックを外した場合も確実にOFFとして保存されます。</p></td></tr>
         </table>
@@ -476,7 +480,9 @@ final class Ship_Modal
         update_post_meta($post_id, '_ship_modal_close_overlay', $close_overlay);
         foreach ($this->theme_color_defaults() as $theme_key => $theme_default) {
             $theme_meta_key = 'theme_' . $theme_key;
-            $theme_value = isset($_POST['ship_modal_' . $theme_meta_key]) ? sanitize_hex_color(wp_unslash($_POST['ship_modal_' . $theme_meta_key])) : $this->meta($post_id, $theme_meta_key, $theme_default);
+            $theme_value = 'surface' === $theme_key
+                ? '#ffffff'
+                : (isset($_POST['ship_modal_' . $theme_meta_key]) ? sanitize_hex_color(wp_unslash($_POST['ship_modal_' . $theme_meta_key])) : $this->meta($post_id, $theme_meta_key, $theme_default));
             update_post_meta($post_id, '_ship_modal_' . $theme_meta_key, $theme_value ?: $theme_default);
         }
 
