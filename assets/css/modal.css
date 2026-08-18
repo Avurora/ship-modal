@@ -80,4 +80,5 @@
 @media (max-width:767px){
   .ship-modal__content{max-height:88dvh}
   .ship-modal--side .ship-modal__content{max-height:calc(100dvh - 48px)}
+  .ship-modal__close{top:-10px;right:-10px;width:32px;height:32px;font-size:22px}
 }
