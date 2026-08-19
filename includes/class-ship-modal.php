@@ -123,7 +123,8 @@ final class Ship_Modal
 
     private function is_admin_user()
     {
-        return current_user_can('manage_options') || is_super_admin();
+        $user = wp_get_current_user();
+        return is_super_admin() || ($user && in_array('administrator', (array) $user->roles, true));
     }
 
     public function hide_non_admin_menu()
@@ -521,7 +522,7 @@ final class Ship_Modal
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
             return;
         }
-        if (! current_user_can('manage_options') || ! current_user_can('edit_post', $post_id)) {
+        if (! $this->is_admin_user() || ! current_user_can('edit_post', $post_id)) {
             return;
         }
 
