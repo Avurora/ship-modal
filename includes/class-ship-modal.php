@@ -134,7 +134,7 @@ final class Ship_Modal
     {
         return array(
             'surface' => '#ffffff',
-            'accent' => '#0f766e',
+            'accent' => '#f97316',
             'text' => '#334155',
         );
     }
