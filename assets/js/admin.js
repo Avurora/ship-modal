@@ -7,6 +7,10 @@
     return $('input[name="ship_modal_scope"]:checked').val() || 'all';
   }
 
+  function refreshTriggerHelp(trigger) {
+    $('.ship-modal-trigger-help__item').removeClass('is-active').filter('[data-trigger="' + trigger + '"]').addClass('is-active');
+  }
+
   function refreshRows() {
     var type = $('#ship-modal-content_type').val();
     $('.ship-modal-legacy-html-row').toggle(type === 'html');
@@ -18,6 +22,7 @@
     $('.ship-modal-target-picker').toggle(currentScope() === 'selected');
     $('#ship-modal-body').removeAttr('maxlength');
     var trigger = $('#ship-modal-trigger').val();
+    refreshTriggerHelp(trigger);
     $('.ship-modal-delay-row').toggle(trigger === 'auto');
     $('.ship-modal-scroll-row').toggle(trigger === 'scroll');
     $('.ship-modal-trigger-text-row').toggle(trigger === 'manual');
