@@ -760,6 +760,10 @@ final class Ship_Modal
     public function preview()
     {
         $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        // HTML属性からコピーされたURLでは「&amp;post_id」として届くことがあるため吸収する。
+        if (! $post_id && isset($_GET['amp;post_id'])) {
+            $post_id = absint($_GET['amp;post_id']);
+        }
         if (! $post_id && isset($_GET['post'])) {
             $post_id = absint($_GET['post']);
         }
@@ -769,6 +773,9 @@ final class Ship_Modal
         }
         if (! $this->user_can_preview($post_id)) {
             wp_die('プレビュー権限がありません。', 'Ship Modal', array('response' => 403));
+        }
+        if (! isset($_REQUEST['_wpnonce']) && isset($_REQUEST['amp;_wpnonce'])) {
+            $_REQUEST['_wpnonce'] = sanitize_text_field(wp_unslash($_REQUEST['amp;_wpnonce']));
         }
         check_admin_referer('ship_modal_preview_' . $post_id);
         nocache_headers();
