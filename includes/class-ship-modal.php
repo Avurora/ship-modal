@@ -22,6 +22,7 @@ final class Ship_Modal
         add_action('init', array($this, 'ensure_admin_capabilities'), 20);
         add_action('add_meta_boxes', array($this, 'register_meta_boxes'));
         add_action('save_post_ship_modal', array($this, 'save_modal'), 10, 2);
+        add_filter('redirect_post_location', array($this, 'redirect_to_preview_after_save'), 10, 2);
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('admin_notices', array($this, 'render_validation_notice'));
         add_filter('manage_ship_modal_posts_columns', array($this, 'admin_columns'));
@@ -332,7 +333,7 @@ final class Ship_Modal
             <p><strong>注意：</strong>管理画面のプレビューだけではなく、保存後の公開ページで画像の大きさ・角丸・ボタン・表示タイミングを必ず確認してください。</p>
         </div>
         <?php if ('publish' !== $post->post_status) : ?><div class="notice notice-warning inline ship-modal-status-warning"><p><strong>現在は公開状態ではありません。</strong>このモーダルは公開ページには表示されません。まず下書きとして保存し、確認後に右上の「公開」または「更新」で公開してください。</p></div><?php endif; ?>
-        <?php if ($post->ID && 'auto-draft' !== $post->post_status) : ?><div class="ship-modal-preview-bar"><a class="button button-primary" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=ship_modal_preview&post_id=' . absint($post->ID)), 'ship_modal_preview_' . absint($post->ID))); ?>" target="_blank" rel="noopener">保存済み内容をプレビュー</a><span>公開状態を変更せず、実際のモーダル表示を確認できます。</span></div><?php endif; ?>
+        <?php if ($post->ID) : ?><div class="ship-modal-preview-bar"><?php if ('auto-draft' !== $post->post_status) : ?><a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=ship_modal_preview&post_id=' . absint($post->ID)), 'ship_modal_preview_' . absint($post->ID))); ?>" target="_blank" rel="noopener">保存済み内容をプレビュー</a><?php endif; ?><button type="submit" name="ship_modal_preview_after_save" value="1" class="button button-primary">更新してプレビュー</button><span>編集中の内容を保存してから、プレビュー画面を開きます。</span></div><?php endif; ?>
         <table class="form-table ship-modal-form-table">
             <tr><th><label for="ship-modal-content_type">フレーム</label></th><td><?php $this->select('content_type', $type, array('html' => '旧：自由HTML', 'image' => '画像のみ', 'hybrid' => '画像＋テキスト（ボタン任意）', 'text' => 'テキスト（ボタン任意）', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
             <tr class="ship-modal-legacy-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
@@ -700,6 +701,27 @@ final class Ship_Modal
         } elseif ('ship_modal_stats' === $column) {
             echo esc_html(number_format_i18n((int) get_post_meta($post_id, '_ship_modal_impressions', true)) . ' views / ' . number_format_i18n((int) get_post_meta($post_id, '_ship_modal_clicks', true)) . ' clicks');
         }
+    }
+
+    /**
+     * 「更新してプレビュー」送信時は、保存後にプレビューURLへ遷移する。
+     * 通常の更新・自動保存のリダイレクトには影響しない。
+     */
+    public function redirect_to_preview_after_save($location, $post_id)
+    {
+        $preview_after_save = isset($_POST['ship_modal_preview_after_save'])
+            ? sanitize_text_field(wp_unslash($_POST['ship_modal_preview_after_save']))
+            : '';
+        if ('1' !== $preview_after_save) {
+            return $location;
+        }
+        if ('ship_modal' !== get_post_type($post_id) || ! current_user_can('edit_post', $post_id)) {
+            return $location;
+        }
+        return wp_nonce_url(
+            admin_url('admin-post.php?action=ship_modal_preview&post_id=' . absint($post_id)),
+            'ship_modal_preview_' . absint($post_id)
+        );
     }
 
     public function preview()
