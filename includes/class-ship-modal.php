@@ -372,6 +372,7 @@ final class Ship_Modal
         $end = $this->meta($post->ID, 'end_at');
         $show_close = $this->meta($post->ID, 'show_close', '1');
         $close_overlay = $this->meta($post->ID, 'close_overlay', '1');
+        $show_backdrop = $this->meta($post->ID, 'show_backdrop', '1');
         $trigger_text = $this->meta($post->ID, 'trigger_text', 'キャンペーン詳細を見る');
         $trigger_bg_color = sanitize_hex_color($this->meta($post->ID, 'trigger_bg_color', '#0f766e')) ?: '#0f766e';
         $trigger_text_color = sanitize_hex_color($this->meta($post->ID, 'trigger_text_color', '#ffffff')) ?: '#ffffff';
@@ -434,7 +435,7 @@ final class Ship_Modal
                 </div>
                 <p class="description">背景は白固定です。右側のカラーパレットが実際に反映される色です。メインカラーはリンク・主ボタン・閉じるボタンに、文字色は本文・見出し・サブボタンに反映されます。保存後に公開ページで確認してください。</p>
             </td></tr>
-            <tr><th>閉じる操作</th><td><input type="hidden" name="ship_modal_show_close" value="0"><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><input type="hidden" name="ship_modal_close_overlay" value="0"><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label><p class="description">チェックを外した場合も確実にOFFとして保存されます。</p></td></tr>
+            <tr><th>閉じる操作</th><td><input type="hidden" name="ship_modal_show_close" value="0"><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><input type="hidden" name="ship_modal_close_overlay" value="0"><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label><br><input type="hidden" name="ship_modal_show_backdrop" value="0"><label><input type="checkbox" name="ship_modal_show_backdrop" value="1" <?php checked($show_backdrop, '1'); ?>> 背景を暗くする</label><p class="description">「背景を暗くする」を外すと、背後のページを暗転させずに表示します。チェックを外した場合も確実にOFFとして保存されます。</p></td></tr>
         </table>
         <p class="description">ショートコード例：<code>[ship_modal id="<?php echo esc_attr($post->ID); ?>"]</code></p>
         <?php
@@ -501,8 +502,10 @@ final class Ship_Modal
         // 内容側でエラーが発生しても、表示設定が意図せず戻らないようにする。
         $show_close = ! empty($_POST['ship_modal_show_close']) ? '1' : '0';
         $close_overlay = ! empty($_POST['ship_modal_close_overlay']) ? '1' : '0';
+        $show_backdrop = ! empty($_POST['ship_modal_show_backdrop']) ? '1' : '0';
         update_post_meta($post_id, '_ship_modal_show_close', $show_close);
         update_post_meta($post_id, '_ship_modal_close_overlay', $close_overlay);
+        update_post_meta($post_id, '_ship_modal_show_backdrop', $show_backdrop);
         foreach ($this->theme_color_defaults() as $theme_key => $theme_default) {
             $theme_meta_key = 'theme_' . $theme_key;
             $theme_value = 'surface' === $theme_key
@@ -889,6 +892,7 @@ final class Ship_Modal
         $scroll_threshold = min(95, max(10, (int) $this->meta($post_id, 'scroll_threshold', 50)));
         $show_close = '1' === $this->meta($post_id, 'show_close', '1');
         $close_overlay = '1' === $this->meta($post_id, 'close_overlay', '1');
+        $show_backdrop = '1' === $this->meta($post_id, 'show_backdrop', '1');
         $title = get_the_title($post_id);
         $image_position = $this->meta($post_id, 'image_position', 'top');
         $heading = $this->meta($post_id, 'heading');
@@ -904,7 +908,7 @@ final class Ship_Modal
             . '--ship-modal-text:' . $theme_colors['text'] . ';--ship-modal-border:#e2e8f0;'
             . '--ship-modal-secondary:#f1f5f9;'
             . '--ship-modal-close-bg:' . $theme_colors['accent'] . ';--ship-modal-close-text:' . $theme_colors['surface'] . ';'
-            . '--ship-modal-overlay:rgba(15,23,42,.45);';
+            . '--ship-modal-overlay:' . ($show_backdrop ? 'rgba(15,23,42,.45)' : 'transparent') . ';';
         $modal_id = 'ship-modal-' . absint($post_id) . '-' . wp_rand(100, 999);
         $content = '';
         $content_class = '';
