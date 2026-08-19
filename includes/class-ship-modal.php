@@ -742,6 +742,10 @@ final class Ship_Modal
         if ('1' !== $preview_after_save) {
             return $location;
         }
+        $post_id = absint($post_id);
+        if (! $post_id && isset($_POST['post_ID'])) {
+            $post_id = absint($_POST['post_ID']);
+        }
         if ('ship_modal' !== get_post_type($post_id) || ! $this->user_can_preview($post_id)) {
             return $location;
         }
@@ -754,6 +758,9 @@ final class Ship_Modal
     public function preview()
     {
         $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        if (! $post_id && isset($_GET['post'])) {
+            $post_id = absint($_GET['post']);
+        }
         $post = $post_id ? get_post($post_id) : null;
         if (! $post || 'ship_modal' !== $post->post_type) {
             wp_die('モーダルが見つかりません。', 'Ship Modal', array('response' => 404));
