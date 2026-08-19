@@ -139,3 +139,6 @@
   .ship-modal__pager-arrow{box-sizing:border-box;min-width:36px!important;min-height:32px!important;width:36px!important;height:32px!important;padding:0!important}
   .ship-modal__pager-dot{box-sizing:border-box;min-width:9px!important;min-height:9px!important;width:9px!important;height:9px!important;padding:0!important;flex:0 0 9px!important}
 }
+
+/* ページャーのページ見出しにも通常見出しと同じ下線装飾を付ける。 */
+.ship-modal__page-html h3{padding-bottom:.35em;border-bottom:2px solid var(--ship-modal-accent,#0f766e);border-color:var(--ship-modal-accent,#0f766e)!important}

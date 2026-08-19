@@ -130,6 +130,16 @@ final class Ship_Modal
         return $value === '' ? $default : $value;
     }
 
+    private function sanitize_custom_css($css)
+    {
+        $css = str_replace("\0", '', (string) $css);
+        $css = preg_replace('/<\s*\/?\s*(?:style|script)[^>]*>/i', '', $css);
+        $css = preg_replace('/@import\s+/i', '/* @import removed */ ', $css);
+        $css = preg_replace('/expression\s*\(/i', '/* expression removed */(', $css);
+        $css = preg_replace('/url\s*\(\s*([\'\"]?)\s*javascript:/i', 'url($1', $css);
+        return trim((string) $css);
+    }
+
     private function theme_color_defaults()
     {
         return array(
@@ -270,6 +280,7 @@ final class Ship_Modal
         $type = $this->meta($post->ID, 'content_type', 'image');
         $design = $this->meta($post->ID, 'design', 'center');
         $html = $this->meta($post->ID, 'html');
+        $custom_css = $this->sanitize_custom_css($this->meta($post->ID, 'custom_css', ''));
         $image_id = absint($this->meta($post->ID, 'image_id'));
         $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'large') : '';
         $link_url = $this->meta($post->ID, 'link_url');
@@ -300,6 +311,7 @@ final class Ship_Modal
             $link_url = isset($form_state['link_url']) ? $form_state['link_url'] : $link_url;
             $buttons = isset($form_state['buttons']) && is_array($form_state['buttons']) ? $form_state['buttons'] : $buttons;
             $pages = isset($form_state['pages']) && is_array($form_state['pages']) ? $form_state['pages'] : $pages;
+            $custom_css = isset($form_state['custom_css']) ? $this->sanitize_custom_css($form_state['custom_css']) : $custom_css;
         }
         if (! is_array($pages) || ! $pages) {
             $pages = array(array());
@@ -340,6 +352,7 @@ final class Ship_Modal
             <tr><th><label for="ship-modal-border_radius">角丸（border-radius）</label></th><td><input type="number" min="0" max="48" step="1" class="small-text" name="ship_modal_border_radius" id="ship-modal-border_radius" value="<?php echo esc_attr($border_radius); ?>"> px <p class="description">0〜48px。0なら角丸なし。</p></td></tr>
             <tr><th><label for="ship-modal-padding">内側の余白（padding）</label></th><td><input type="number" min="0" max="64" step="1" class="small-text" name="ship_modal_padding" id="ship-modal-padding" value="<?php echo esc_attr($padding); ?>"> px <p class="description">0〜64px。画像のみフレームは画像をコンテナいっぱいに表示します。</p></td></tr>
             <tr><th><label for="ship-modal-max_width">最大幅（max-width）</label></th><td><input type="number" min="280" max="1200" step="1" class="small-text" name="ship_modal_max_width" id="ship-modal-max_width" value="<?php echo esc_attr($max_width); ?>"> px <p class="description">280〜1200px、1px刻みで設定できます。スマホでは画面幅に合わせて縮小します。</p></td></tr>
+            <tr><th><label for="ship-modal-custom-css">上級者向け</label></th><td><details class="ship-modal-advanced-settings"><summary>このモーダル専用のCustom CSS</summary><textarea class="large-text code" rows="8" name="ship_modal_custom_css" id="ship-modal-custom-css" spellcheck="false"><?php echo esc_textarea($custom_css); ?></textarea><p class="description">このモーダルだけに適用するCSSを入力できます。<code>.ship-modal--id-<?php echo absint($post->ID); ?></code> を先頭に付けて指定してください。<code>&lt;style&gt;</code>タグは不要です。保存後に公開ページで必ず確認してください。</p></details></td></tr>
         </table>
         <script type="text/html" id="ship-modal-page-template"><?php $this->render_page_row('__INDEX__', array()); ?></script>
         <?php
@@ -496,6 +509,7 @@ final class Ship_Modal
         $body_raw = isset($_POST['ship_modal_body']) ? wp_unslash($_POST['ship_modal_body']) : $this->meta($post_id, 'body', '');
         $body = wp_kses($body_raw, array('strong' => array(), 'br' => array(), 'a' => array('href' => true, 'target' => true, 'rel' => true)));
         $html = isset($_POST['ship_modal_html']) ? wp_unslash($_POST['ship_modal_html']) : $this->meta($post_id, 'html', '');
+        $custom_css = isset($_POST['ship_modal_custom_css']) ? $this->sanitize_custom_css(wp_unslash($_POST['ship_modal_custom_css'])) : $this->sanitize_custom_css($this->meta($post_id, 'custom_css', ''));
         $image_id = isset($_POST['ship_modal_image_id']) ? absint($_POST['ship_modal_image_id']) : absint($this->meta($post_id, 'image_id', 0));
         $buttons = $this->normalize_buttons(isset($_POST['ship_modal_buttons']) ? $_POST['ship_modal_buttons'] : $this->meta($post_id, 'buttons', array()), 3, 'ボタン', $errors);
 
@@ -547,6 +561,7 @@ final class Ship_Modal
                 'link_url' => isset($_POST['ship_modal_link_url']) ? esc_url_raw(wp_unslash($_POST['ship_modal_link_url'])) : $this->meta($post_id, 'link_url', ''),
                 'buttons' => isset($_POST['ship_modal_buttons']) && is_array($_POST['ship_modal_buttons']) ? wp_unslash($_POST['ship_modal_buttons']) : $buttons,
                 'pages' => isset($_POST['ship_modal_pages']) && is_array($_POST['ship_modal_pages']) ? wp_unslash($_POST['ship_modal_pages']) : $pages,
+                'custom_css' => $custom_css,
             );
             if (! set_transient($form_key, $form_state, 60)) {
                 update_post_meta($post_id, '_ship_modal_form_state_' . get_current_user_id(), $form_state);
@@ -567,6 +582,7 @@ final class Ship_Modal
             update_post_meta($post_id, '_ship_modal_' . $field, sanitize_text_field($value));
         }
         update_post_meta($post_id, '_ship_modal_html', wp_kses_post($html));
+        update_post_meta($post_id, '_ship_modal_custom_css', $custom_css);
         update_post_meta($post_id, '_ship_modal_heading', $heading);
         update_post_meta($post_id, '_ship_modal_body', $body);
         update_post_meta($post_id, '_ship_modal_buttons', $buttons);
@@ -839,6 +855,7 @@ final class Ship_Modal
         $heading = $this->meta($post_id, 'heading');
         $body = $this->meta($post_id, 'body');
         $buttons = $this->meta($post_id, 'buttons', array());
+        $custom_css = $this->sanitize_custom_css($this->meta($post_id, 'custom_css', ''));
         $border_radius = min(48, max(0, (int) $this->meta($post_id, 'border_radius', 0)));
         $padding = min(64, max(0, (int) $this->meta($post_id, 'padding', 20)));
         $max_width = min(1200, max(280, (int) $this->meta($post_id, 'max_width', 620)));
@@ -911,7 +928,8 @@ final class Ship_Modal
             echo '<button type="button" class="' . esc_attr($trigger_class) . '" style="' . esc_attr($trigger_style) . '" data-ship-modal-target="' . esc_attr($modal_id) . '">' . esc_html($button_text) . '</button>';
         }
         ?>
-        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-scroll-threshold="<?php echo esc_attr($scroll_threshold); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
+        <?php if ($custom_css !== '') : ?><style id="ship-modal-custom-css-<?php echo absint($post_id); ?>"><?php echo $custom_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></style><?php endif; ?>
+        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?> ship-modal--id-<?php echo absint($post_id); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-scroll-threshold="<?php echo esc_attr($scroll_threshold); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
             <div class="ship-modal__backdrop" data-ship-modal-close></div>
             <div class="ship-modal__dialog" role="document">
                 <h2 id="<?php echo esc_attr($modal_id); ?>-title" class="screen-reader-text"><?php echo esc_html($title); ?></h2>
