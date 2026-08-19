@@ -20,6 +20,8 @@ final class Ship_Modal
     {
         add_action('init', array($this, 'register_post_type'));
         add_action('init', array($this, 'ensure_admin_capabilities'), 20);
+        add_action('admin_menu', array($this, 'hide_non_admin_menu'), 999);
+        add_action('admin_init', array($this, 'restrict_non_admin_access'));
         add_action('add_meta_boxes', array($this, 'register_meta_boxes'));
         add_action('save_post_ship_modal', array($this, 'save_modal'), 10, 2);
         add_filter('redirect_post_location', array($this, 'redirect_to_preview_after_save'), 10, 2);
@@ -64,8 +66,8 @@ final class Ship_Modal
             ),
             'public' => false,
             'publicly_queryable' => false,
-            'show_ui' => true,
-            'show_in_menu' => true,
+            'show_ui' => $this->is_admin_user(),
+            'show_in_menu' => $this->is_admin_user(),
             'menu_icon' => 'dashicons-welcome-view-site',
             'supports' => array('title'),
             'capability_type' => array('ship_modal', 'ship_modals'),
@@ -93,7 +95,7 @@ final class Ship_Modal
 
     public function ensure_admin_capabilities()
     {
-        if ('1' === get_option('ship_modal_capabilities_version')) {
+        if ('2' === get_option('ship_modal_capabilities_version')) {
             return;
         }
         $capabilities = array(
@@ -116,7 +118,31 @@ final class Ship_Modal
                 }
             }
         }
-        update_option('ship_modal_capabilities_version', '1', false);
+        update_option('ship_modal_capabilities_version', '2', false);
+    }
+
+    private function is_admin_user()
+    {
+        return current_user_can('manage_options') || is_super_admin();
+    }
+
+    public function hide_non_admin_menu()
+    {
+        if (! $this->is_admin_user()) {
+            remove_menu_page('edit.php?post_type=ship_modal');
+        }
+    }
+
+    public function restrict_non_admin_access()
+    {
+        if ($this->is_admin_user()) {
+            return;
+        }
+        $post_type = isset($_GET['post_type']) ? sanitize_key(wp_unslash($_GET['post_type'])) : '';
+        $post_id = isset($_GET['post']) ? absint($_GET['post']) : 0;
+        if ('ship_modal' === $post_type || ($post_id && 'ship_modal' === get_post_type($post_id))) {
+            wp_die('この機能は管理者のみ利用できます。', 'Ship Modal', array('response' => 403));
+        }
     }
 
     public function register_meta_boxes()
@@ -752,8 +778,7 @@ final class Ship_Modal
 
     private function user_can_preview($post_id)
     {
-        // モーダル編集権限のマッピングが環境ごとに異なっても、管理者は確実に確認できるようにする。
-        return current_user_can('manage_options') || current_user_can('edit_post', $post_id) || is_super_admin();
+        return $this->is_admin_user();
     }
 
     private function is_in_schedule($post_id)
