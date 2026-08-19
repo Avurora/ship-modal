@@ -715,7 +715,7 @@ final class Ship_Modal
         if ('1' !== $preview_after_save) {
             return $location;
         }
-        if ('ship_modal' !== get_post_type($post_id) || ! current_user_can('edit_post', $post_id)) {
+        if ('ship_modal' !== get_post_type($post_id) || ! $this->user_can_preview($post_id)) {
             return $location;
         }
         return wp_nonce_url(
@@ -727,14 +727,14 @@ final class Ship_Modal
     public function preview()
     {
         $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
-        if (! $post_id || ! current_user_can('edit_post', $post_id)) {
-            wp_die('プレビュー権限がありません。', 'Ship Modal', array('response' => 403));
-        }
-        check_admin_referer('ship_modal_preview_' . $post_id);
-        $post = get_post($post_id);
+        $post = $post_id ? get_post($post_id) : null;
         if (! $post || 'ship_modal' !== $post->post_type) {
             wp_die('モーダルが見つかりません。', 'Ship Modal', array('response' => 404));
         }
+        if (! $this->user_can_preview($post_id)) {
+            wp_die('プレビュー権限がありません。', 'Ship Modal', array('response' => 403));
+        }
+        check_admin_referer('ship_modal_preview_' . $post_id);
         nocache_headers();
         $modal = $this->render_modal($post_id, false, true);
         if (! $modal) {
@@ -748,6 +748,12 @@ final class Ship_Modal
         do_action('wp_enqueue_scripts');
         ?><!doctype html><html <?php language_attributes(); ?>><head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?php echo esc_html('モーダルプレビュー：' . get_the_title($post_id)); ?></title><?php wp_print_styles(); ?></head><body <?php body_class('ship-modal-preview-page'); ?>><?php echo $modal; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><script src="<?php echo esc_url($js_url); ?>"></script></body></html><?php
         exit;
+    }
+
+    private function user_can_preview($post_id)
+    {
+        // モーダル編集権限のマッピングが環境ごとに異なっても、管理者は確実に確認できるようにする。
+        return current_user_can('manage_options') || current_user_can('edit_post', $post_id) || is_super_admin();
     }
 
     private function is_in_schedule($post_id)
