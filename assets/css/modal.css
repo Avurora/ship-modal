@@ -67,6 +67,12 @@
 .ship-modal .ship-modal__pager .ship-modal__pager-dot.is-active,
 .ship-modal .ship-modal__pager .ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 .ship-modal .ship-modal__pager .ship-modal__pager-dot{box-sizing:border-box;width:10px;height:10px;min-width:10px;min-height:10px!important;padding:0;border-radius:50%;font-size:0;line-height:1;overflow:hidden;flex:0 0 10px}
+.ship-modal .ship-modal__pager{margin-top:16px;padding-top:0;border-top:0}
+.ship-modal .ship-modal__content--pager-image-only .ship-modal__pager{margin-top:0}
+.ship-modal .ship-modal__pager .ship-modal__pager-arrow{box-sizing:border-box;width:36px;height:36px;min-width:36px!important;min-height:36px!important;padding:0!important;font-size:0;line-height:1}
+.ship-modal .ship-modal__pager .ship-modal__pager-arrow::before{font-size:22px;line-height:1}
+.ship-modal .ship-modal__pager .ship-modal__pager-arrow[data-ship-modal-page-prev]::before{content:'‹'}
+.ship-modal .ship-modal__pager .ship-modal__pager-arrow[data-ship-modal-page-next]::before{content:'›'}
 .ship-modal .ship-modal__buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
 .ship-modal .ship-modal__button{text-decoration:none!important;width:100%;box-sizing:border-box}
 .ship-modal .ship-modal__buttons--count-1 .ship-modal__button{grid-column:1;width:100%}
@@ -120,10 +126,6 @@
 
 @media (max-width:767px){
   .ship-modal__pager{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;gap:8px;align-items:center;overflow:hidden}
-  .ship-modal__pager-arrow{width:36px;height:32px;padding:0;font-size:0;line-height:1}
-  .ship-modal__pager-arrow::before{font-size:22px;line-height:1}
-  .ship-modal__pager-arrow[data-ship-modal-page-prev]::before{content:'‹'}
-  .ship-modal__pager-arrow[data-ship-modal-page-next]::before{content:'›'}
   .ship-modal__pager-dots{min-width:0;flex-wrap:nowrap;overflow-x:auto;justify-content:center;gap:5px;padding:4px 0;scrollbar-width:none}
   .ship-modal__pager-dots::-webkit-scrollbar{display:none}
   .ship-modal__pager-dot{flex:0 0 9px;width:9px;height:9px;padding:0;border-radius:50%;font-size:0}
