@@ -763,6 +763,7 @@ final class Ship_Modal
             return '';
         }
         $markup = '';
+        $button_count = 0;
         foreach ($buttons as $button) {
             if (! is_array($button) || empty($button['label'])) {
                 continue;
@@ -780,8 +781,9 @@ final class Ship_Modal
             } else {
                 $markup .= '<a class="ship-modal__button ship-modal__button--' . esc_attr($style) . '" data-ship-modal-action="button" data-ship-modal-label="' . $label_attr . '" href="' . esc_url($button['url']) . '"' . $target . '>' . $label . '</a>';
             }
+            $button_count++;
         }
-        return $markup ? '<div class="ship-modal__buttons">' . $markup . '</div>' : '';
+        return $markup ? '<div class="ship-modal__buttons ship-modal__buttons--count-' . absint($button_count) . '">' . $markup . '</div>' : '';
     }
 
     private function page_has_copy($page)

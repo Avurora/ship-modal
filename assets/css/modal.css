@@ -62,6 +62,10 @@
 /* リンク色の指定よりボタン配色を優先し、背景と文字が同色にならないようにする。 */
 .ship-modal .ship-modal__button.ship-modal__button--primary{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 .ship-modal .ship-modal__button.ship-modal__button--secondary{background:var(--ship-modal-secondary,#f1f5f9)!important;color:var(--ship-modal-text,#334155)!important}
+.ship-modal .ship-modal__buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+.ship-modal .ship-modal__button{text-decoration:none!important;width:100%;box-sizing:border-box}
+.ship-modal .ship-modal__buttons--count-1 .ship-modal__button{grid-column:1;justify-self:center;width:50%}
+.ship-modal .ship-modal__buttons--count-3 .ship-modal__button:nth-child(3){grid-column:1 / -1}
 
 /* 本文色は画像＋HTMLを含む全フレームで同じテーマカラーを使う。 */
 .ship-modal .ship-modal__content p,
