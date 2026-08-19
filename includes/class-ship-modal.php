@@ -718,9 +718,13 @@ final class Ship_Modal
         if (! $modal) {
             wp_die('プレビューできる内容がありません。先に内容を保存してください。', 'Ship Modal', array('response' => 400));
         }
-        $css_url = SHIP_MODAL_URL . 'assets/css/modal.css?ver=' . rawurlencode(SHIP_MODAL_VERSION);
         $js_url = SHIP_MODAL_URL . 'assets/js/modal.js?ver=' . rawurlencode(SHIP_MODAL_VERSION);
-        ?><!doctype html><html <?php language_attributes(); ?>><head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?php echo esc_html('モーダルプレビュー：' . get_the_title($post_id)); ?></title><link rel="stylesheet" href="<?php echo esc_url($css_url); ?>"></head><body class="ship-modal-preview-page"><?php echo $modal; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><script src="<?php echo esc_url($js_url); ?>"></script></body></html><?php
+        // 公開ページと同じテーマCSSを読み込み、プレビューだけ見た目が変わらないようにする。
+        // wp_head() はテーマ固有の副作用（タイトルや外部スクリプトなど）も出力するため、
+        // enqueue処理とスタイル出力だけを実行する。
+        wp_enqueue_style('ship-modal-preview', SHIP_MODAL_URL . 'assets/css/modal.css', array(), SHIP_MODAL_VERSION);
+        do_action('wp_enqueue_scripts');
+        ?><!doctype html><html <?php language_attributes(); ?>><head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?php echo esc_html('モーダルプレビュー：' . get_the_title($post_id)); ?></title><?php wp_print_styles(); ?></head><body <?php body_class('ship-modal-preview-page'); ?>><?php echo $modal; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><script src="<?php echo esc_url($js_url); ?>"></script></body></html><?php
         exit;
     }
 
