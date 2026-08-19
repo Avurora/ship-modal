@@ -59,6 +59,10 @@
 .ship-modal__pager-dot.is-active,.ship-modal__pager-dot[aria-current="true"]{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
 .ship-modal__content--pager-image-only .ship-modal__pager{margin-top:0;padding-top:0;border-top:0}
 
+/* リンク色の指定よりボタン配色を優先し、背景と文字が同色にならないようにする。 */
+.ship-modal .ship-modal__button.ship-modal__button--primary{background:var(--ship-modal-accent,#0f766e)!important;color:var(--ship-modal-surface,#fff)!important}
+.ship-modal .ship-modal__button.ship-modal__button--secondary{background:var(--ship-modal-secondary,#f1f5f9)!important;color:var(--ship-modal-text,#334155)!important}
+
 /* 本文色は画像＋HTMLを含む全フレームで同じテーマカラーを使う。 */
 .ship-modal .ship-modal__content p,
 .ship-modal .ship-modal__content li,
