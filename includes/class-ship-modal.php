@@ -360,7 +360,7 @@ final class Ship_Modal
             <p><strong>注意：</strong>管理画面のプレビューだけではなく、保存後の公開ページで画像の大きさ・角丸・ボタン・表示タイミングを必ず確認してください。</p>
         </div>
         <?php if ('publish' !== $post->post_status) : ?><div class="notice notice-warning inline ship-modal-status-warning"><p><strong>現在は公開状態ではありません。</strong>このモーダルは公開ページには表示されません。まず下書きとして保存し、確認後に右上の「公開」または「更新」で公開してください。</p></div><?php endif; ?>
-        <?php if ($post->ID) : ?><div class="ship-modal-preview-bar"><?php if ('auto-draft' !== $post->post_status) : ?><a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=ship_modal_preview&post_id=' . absint($post->ID)), 'ship_modal_preview_' . absint($post->ID))); ?>" target="_blank" rel="noopener">保存済み内容をプレビュー</a><?php endif; ?><button type="submit" name="ship_modal_preview_after_save" value="1" class="button button-primary">更新してプレビュー</button><span>編集中の内容を保存してから、プレビュー画面を開きます。</span></div><?php endif; ?>
+        <?php if ($post->ID) : ?><div class="ship-modal-preview-bar"><input type="hidden" name="ship_modal_preview_post_id" value="<?php echo absint($post->ID); ?>"><?php if ('auto-draft' !== $post->post_status) : ?><a class="button" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=ship_modal_preview&post_id=' . absint($post->ID)), 'ship_modal_preview_' . absint($post->ID))); ?>" target="_blank" rel="noopener">保存済み内容をプレビュー</a><?php endif; ?><button type="submit" name="ship_modal_preview_after_save" value="1" class="button button-primary">更新してプレビュー</button><span>編集中の内容を保存してから、プレビュー画面を開きます。</span></div><?php endif; ?>
         <table class="form-table ship-modal-form-table">
             <tr><th><label for="ship-modal-content_type">フレーム</label></th><td><?php $this->select('content_type', $type, array('html' => '旧：自由HTML', 'image' => '画像のみ', 'hybrid' => '画像＋テキスト（ボタン任意）', 'text' => 'テキスト（ボタン任意）', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
             <tr class="ship-modal-legacy-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
@@ -742,7 +742,9 @@ final class Ship_Modal
         if ('1' !== $preview_after_save) {
             return $location;
         }
-        $post_id = absint($post_id);
+        $post_id = isset($_POST['ship_modal_preview_post_id'])
+            ? absint($_POST['ship_modal_preview_post_id'])
+            : absint($post_id);
         if (! $post_id && isset($_POST['post_ID'])) {
             $post_id = absint($_POST['post_ID']);
         }
