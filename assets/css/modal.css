@@ -68,8 +68,8 @@
 .ship-modal .ship-modal__buttons--count-3 .ship-modal__button:nth-child(3){grid-column:1 / -1}
 
 /* モーダルの実幅が狭い場合は、端末幅に関係なく1カラムへ切り替える。 */
-.ship-modal__content{container-type:inline-size;container-name:ship-modal-content}
-@container ship-modal-content (max-width:380px){
+.ship-modal__dialog{container-type:inline-size;container-name:ship-modal-dialog}
+@container ship-modal-dialog (max-width:380px){
   .ship-modal .ship-modal__buttons{grid-template-columns:1fr}
   .ship-modal .ship-modal__buttons--count-1 .ship-modal__button,
   .ship-modal .ship-modal__buttons--count-3 .ship-modal__button:nth-child(3){grid-column:1;width:100%}
