@@ -407,7 +407,7 @@ final class Ship_Modal
                     <label>メインカラー <input type="color" name="ship_modal_theme_accent" value="<?php echo esc_attr($theme_colors['accent']); ?>"></label>
                     <label>文字色 <input type="color" name="ship_modal_theme_text" value="<?php echo esc_attr($theme_colors['text']); ?>"></label>
                 </div>
-                <p class="description">背景は白固定です。メインカラーはリンク・主ボタン・閉じるボタンに、文字色は本文・見出し・サブボタンに反映されます。保存後に公開ページで確認してください。</p>
+                <p class="description">背景は白固定です。右側のカラーパレットが実際に反映される色です。メインカラーはリンク・主ボタン・閉じるボタンに、文字色は本文・見出し・サブボタンに反映されます。保存後に公開ページで確認してください。</p>
             </td></tr>
             <tr><th>閉じる操作</th><td><input type="hidden" name="ship_modal_show_close" value="0"><label><input type="checkbox" name="ship_modal_show_close" value="1" <?php checked($show_close, '1'); ?>> 閉じるボタンを表示</label><br><input type="hidden" name="ship_modal_close_overlay" value="0"><label><input type="checkbox" name="ship_modal_close_overlay" value="1" <?php checked($close_overlay, '1'); ?>> 背景クリックで閉じる</label><p class="description">チェックを外した場合も確実にOFFとして保存されます。</p></td></tr>
         </table>
