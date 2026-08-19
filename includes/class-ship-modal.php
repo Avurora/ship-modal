@@ -32,6 +32,7 @@ final class Ship_Modal
         add_action('wp_ajax_ship_modal_event', array($this, 'record_event'));
         add_action('wp_ajax_nopriv_ship_modal_event', array($this, 'record_event'));
         add_action('wp_ajax_ship_modal_search_targets', array($this, 'search_targets'));
+        add_action('admin_post_ship_modal_preview', array($this, 'preview'));
     }
 
     public static function activate()
@@ -330,6 +331,8 @@ final class Ship_Modal
             </ol>
             <p><strong>注意：</strong>管理画面のプレビューだけではなく、保存後の公開ページで画像の大きさ・角丸・ボタン・表示タイミングを必ず確認してください。</p>
         </div>
+        <?php if ('publish' !== $post->post_status) : ?><div class="notice notice-warning inline ship-modal-status-warning"><p><strong>現在は公開状態ではありません。</strong>このモーダルは公開ページには表示されません。まず下書きとして保存し、確認後に右上の「公開」または「更新」で公開してください。</p></div><?php endif; ?>
+        <?php if ($post->ID && 'auto-draft' !== $post->post_status) : ?><div class="ship-modal-preview-bar"><a class="button button-primary" href="<?php echo esc_url(wp_nonce_url(admin_url('admin-post.php?action=ship_modal_preview&post_id=' . absint($post->ID)), 'ship_modal_preview_' . absint($post->ID))); ?>" target="_blank" rel="noopener">保存済み内容をプレビュー</a><span>公開状態を変更せず、実際のモーダル表示を確認できます。</span></div><?php endif; ?>
         <table class="form-table ship-modal-form-table">
             <tr><th><label for="ship-modal-content_type">フレーム</label></th><td><?php $this->select('content_type', $type, array('html' => '旧：自由HTML', 'image' => '画像のみ', 'hybrid' => '画像＋テキスト（ボタン任意）', 'text' => 'テキスト（ボタン任意）', 'pager' => 'ページャー（複数ページ）')); ?></td></tr>
             <tr class="ship-modal-legacy-html-row"><th><label for="ship-modal-html">HTML</label></th><td><?php wp_editor($html, 'ship_modal_html', array('textarea_name' => 'ship_modal_html', 'textarea_rows' => 10, 'media_buttons' => false, 'teeny' => true)); ?></td></tr>
@@ -696,6 +699,28 @@ final class Ship_Modal
         }
     }
 
+    public function preview()
+    {
+        $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        if (! $post_id || ! current_user_can('edit_post', $post_id)) {
+            wp_die('プレビュー権限がありません。', 'Ship Modal', array('response' => 403));
+        }
+        check_admin_referer('ship_modal_preview_' . $post_id);
+        $post = get_post($post_id);
+        if (! $post || 'ship_modal' !== $post->post_type) {
+            wp_die('モーダルが見つかりません。', 'Ship Modal', array('response' => 404));
+        }
+        nocache_headers();
+        $modal = $this->render_modal($post_id, false, true);
+        if (! $modal) {
+            wp_die('プレビューできる内容がありません。先に内容を保存してください。', 'Ship Modal', array('response' => 400));
+        }
+        $css_url = SHIP_MODAL_URL . 'assets/css/modal.css?ver=' . rawurlencode(SHIP_MODAL_VERSION);
+        $js_url = SHIP_MODAL_URL . 'assets/js/modal.js?ver=' . rawurlencode(SHIP_MODAL_VERSION);
+        ?><!doctype html><html <?php language_attributes(); ?>><head><meta charset="<?php bloginfo('charset'); ?>"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?php echo esc_html('モーダルプレビュー：' . get_the_title($post_id)); ?></title><link rel="stylesheet" href="<?php echo esc_url($css_url); ?>"></head><body class="ship-modal-preview-page"><?php echo $modal; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><script src="<?php echo esc_url($js_url); ?>"></script></body></html><?php
+        exit;
+    }
+
     private function is_in_schedule($post_id)
     {
         $now = current_time('timestamp');
@@ -846,9 +871,9 @@ final class Ship_Modal
         return $markup;
     }
 
-    private function render_modal($post_id, $shortcode = false)
+    private function render_modal($post_id, $shortcode = false, $preview = false)
     {
-        if (! $this->is_in_schedule($post_id)) {
+        if (! $preview && ! $this->is_in_schedule($post_id)) {
             return '';
         }
         $type = $this->meta($post_id, 'content_type', 'html');
@@ -856,6 +881,11 @@ final class Ship_Modal
         $trigger = $this->meta($post_id, 'trigger', 'auto');
         $frequency = $this->meta($post_id, 'frequency', 'session');
         $delay = max(0, (int) $this->meta($post_id, 'delay', 2));
+        if ($preview) {
+            $trigger = 'auto';
+            $frequency = 'always';
+            $delay = 0;
+        }
         $scroll_threshold = min(95, max(10, (int) $this->meta($post_id, 'scroll_threshold', 50)));
         $show_close = '1' === $this->meta($post_id, 'show_close', '1');
         $close_overlay = '1' === $this->meta($post_id, 'close_overlay', '1');
@@ -938,7 +968,7 @@ final class Ship_Modal
         }
         ?>
         <?php if ($custom_css !== '') : ?><style id="ship-modal-custom-css-<?php echo absint($post_id); ?>"><?php echo $custom_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></style><?php endif; ?>
-        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?> ship-modal--id-<?php echo absint($post_id); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-scroll-threshold="<?php echo esc_attr($scroll_threshold); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
+        <div id="<?php echo esc_attr($modal_id); ?>" class="ship-modal ship-modal--<?php echo esc_attr($design); ?> ship-modal--id-<?php echo absint($post_id); ?>" style="<?php echo esc_attr($modal_style); ?>" data-post-id="<?php echo absint($post_id); ?>" data-modal-title="<?php echo esc_attr($title); ?>" data-content-type="<?php echo esc_attr($type); ?>" data-design="<?php echo esc_attr($design); ?>" data-trigger="<?php echo esc_attr($trigger); ?>" data-frequency="<?php echo esc_attr($frequency); ?>" data-delay="<?php echo esc_attr($delay); ?>" data-scroll-threshold="<?php echo esc_attr($scroll_threshold); ?>" data-auto-open="<?php echo 'auto' === $trigger ? '1' : '0'; ?>" data-close-overlay="<?php echo $close_overlay ? '1' : '0'; ?>" data-preview="<?php echo $preview ? '1' : '0'; ?>" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-title" hidden>
             <div class="ship-modal__backdrop" data-ship-modal-close></div>
             <div class="ship-modal__dialog" role="document">
                 <h2 id="<?php echo esc_attr($modal_id); ?>-title" class="screen-reader-text"><?php echo esc_html($title); ?></h2>

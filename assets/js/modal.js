@@ -10,6 +10,7 @@
   }
 
   function canShow(modal) {
+    if (modal && modal.dataset.preview === '1') return true;
     var frequency = modal.dataset.frequency || 'session';
     if (frequency === 'always') return true;
     var store = frequency === 'session' ? window.sessionStorage : window.localStorage;
@@ -24,6 +25,7 @@
   }
 
   function markShown(modal) {
+    if (modal && modal.dataset.preview === '1') return;
     var frequency = modal.dataset.frequency || 'session';
     if (frequency === 'always') return;
     var store = frequency === 'session' ? window.sessionStorage : window.localStorage;
@@ -75,6 +77,7 @@
   }
 
   function track(modal, event, details) {
+    if (modal && modal.dataset.preview === '1') return;
     trackServer(modal, event);
     var eventName = event === 'impression' ? 'ship_modal_impression' : event === 'click' ? 'ship_modal_click' : event === 'close' ? 'ship_modal_close' : 'ship_modal_page_view';
     pushDataLayer(modal, eventName, details);
