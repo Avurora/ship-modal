@@ -149,3 +149,17 @@
 
 /* ページャーのページ見出しにも通常見出しと同じ下線装飾を付ける。 */
 .ship-modal__page-html h3{padding-bottom:.35em;border-bottom:2px solid var(--ship-modal-accent,#0f766e);border-color:var(--ship-modal-accent,#0f766e)!important}
+
+/* 画像＋テキストは、端末幅ではなくモーダル本文の実幅でレイアウトを切り替える。 */
+.ship-modal__content{container-type:inline-size;container-name:ship-modal-content}
+.ship-modal__hybrid{display:block}
+.ship-modal__hybrid--left .ship-modal__hybrid-media,
+.ship-modal__hybrid--right .ship-modal__hybrid-media{margin-bottom:18px}
+@container ship-modal-content (min-width:540px){
+  .ship-modal__hybrid--left,
+  .ship-modal__hybrid--right{display:flex;align-items:center;gap:24px}
+  .ship-modal__hybrid--left .ship-modal__hybrid-media,
+  .ship-modal__hybrid--right .ship-modal__hybrid-media{flex:0 0 42%;min-width:0;margin-bottom:0}
+  .ship-modal__hybrid--right{flex-direction:row-reverse}
+  .ship-modal__hybrid-html{min-width:0}
+}
