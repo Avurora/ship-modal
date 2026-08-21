@@ -606,16 +606,21 @@ final class Ship_Modal
 
         echo '<details class="ship-modal-stats-tools"><summary>CSV出力・計測リセット</summary>';
         echo '<p class="description">期間を指定して、日別の表示・クリック・閉じる・ページ閲覧をCSVでダウンロードできます。</p>';
-        echo '<form method="get" action="' . esc_url(admin_url('admin-post.php')) . '" target="_blank" class="ship-modal-stats-export-form">';
-        echo '<input type="hidden" name="action" value="ship_modal_export_stats"><input type="hidden" name="post_id" value="' . absint($post->ID) . '">';
-        wp_nonce_field('ship_modal_export_stats_' . absint($post->ID), '_wpnonce', false);
-        echo '<label>開始 <input type="date" name="from" value="' . esc_attr($recent_from) . '"></label> <label>終了 <input type="date" name="to" value="' . esc_attr($today) . '"></label> <button type="submit" class="button">CSVをダウンロード</button>';
-        echo '</form>';
-        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="ship-modal-stats-reset-form" onsubmit="return window.confirm(\'このモーダルの計測データをすべてリセットします。よろしいですか？\');">';
-        echo '<input type="hidden" name="action" value="ship_modal_reset_stats"><input type="hidden" name="post_id" value="' . absint($post->ID) . '">';
-        wp_nonce_field('ship_modal_reset_stats_' . absint($post->ID));
-        echo '<button type="submit" class="button">計測をリセット</button><span class="description">全期間の集計と日別データを削除します。</span>';
-        echo '</form></details>';
+        $export_base_url = wp_nonce_url(
+            add_query_arg(array('action' => 'ship_modal_export_stats', 'post_id' => absint($post->ID)), admin_url('admin-post.php')),
+            'ship_modal_export_stats_' . absint($post->ID),
+            '_wpnonce'
+        );
+        $export_all_url = $export_base_url;
+        $export_recent_url = add_query_arg(array('from' => $recent_from, 'to' => $today), $export_base_url);
+        $reset_url = wp_nonce_url(
+            add_query_arg(array('action' => 'ship_modal_reset_stats', 'post_id' => absint($post->ID)), admin_url('admin-post.php')),
+            'ship_modal_reset_stats_' . absint($post->ID),
+            '_wpnonce'
+        );
+        // 投稿編集画面全体がformで囲まれているため、ここでは入れ子formを使わずリンクで送信する。
+        echo '<div class="ship-modal-stats-export-form"><label>開始 <input type="date" id="ship-modal-stats-from-' . absint($post->ID) . '" value="' . esc_attr($recent_from) . '"></label> <label>終了 <input type="date" id="ship-modal-stats-to-' . absint($post->ID) . '" value="' . esc_attr($today) . '"></label> <a class="button ship-modal-stats-export-link" data-base-url="' . esc_attr($export_base_url) . '" data-from-id="ship-modal-stats-from-' . absint($post->ID) . '" data-to-id="ship-modal-stats-to-' . absint($post->ID) . '" href="' . esc_url($export_recent_url) . '" target="_blank" rel="noopener">CSVをダウンロード</a> <a class="button" href="' . esc_url($export_all_url) . '" target="_blank" rel="noopener">全期間CSV</a></div>';
+        echo '<div class="ship-modal-stats-reset-form"><a class="button" href="' . esc_url($reset_url) . '" onclick="return window.confirm(\'このモーダルの計測データをすべてリセットします。よろしいですか？\');">計測をリセット</a><span class="description">全期間の集計と日別データを削除します。</span></div></details>';
     }
 
     private function normalize_buttons($raw_buttons, $max, $context, &$errors)
@@ -1287,7 +1292,7 @@ final class Ship_Modal
 
     public function reset_stats()
     {
-        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : (isset($_GET['post_id']) ? absint($_GET['post_id']) : 0);
         if (! $this->is_admin_user() || ! $post_id || 'ship_modal' !== get_post_type($post_id)) {
             wp_die('この機能は管理者のみ利用できます。', 'Ship Modal', array('response' => 403));
         }

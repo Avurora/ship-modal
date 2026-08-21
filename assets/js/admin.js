@@ -57,6 +57,21 @@
     $('.ship-modal-target-count').text(count ? count + '件選択中' : '未選択');
   }
 
+  function refreshStatsExportLink() {
+    $('.ship-modal-stats-export-link').each(function () {
+      var $link = $(this);
+      var baseUrl = String($link.data('baseUrl') || '');
+      var from = $('#' + $link.data('fromId')).val() || '';
+      var to = $('#' + $link.data('toId')).val() || '';
+      if (!baseUrl) return;
+      var separator = baseUrl.indexOf('?') >= 0 ? '&' : '?';
+      var params = [];
+      if (from) params.push('from=' + encodeURIComponent(from));
+      if (to) params.push('to=' + encodeURIComponent(to));
+      $link.attr('href', baseUrl + (params.length ? separator + params.join('&') : ''));
+    });
+  }
+
   function targetIsSelected(id) {
     return $('#ship-modal-target-selected .ship-modal-target-chip[data-target-id="' + id + '"]').length > 0;
   }
@@ -73,6 +88,8 @@
     $('<button type="button" class="ship-modal-target-remove" aria-label="選択を解除">×</button>').appendTo($chip);
     $('#ship-modal-target-selected').append($chip);
     updateTargetCount();
+    refreshStatsExportLink();
+    $(document).on('change', '.ship-modal-stats-export-form input[type="date"]', refreshStatsExportLink);
   }
 
   function searchTargets() {
