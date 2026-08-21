@@ -19,6 +19,7 @@ final class Ship_Modal
     private function __construct()
     {
         add_action('init', array($this, 'register_post_type'));
+        add_action('init', array($this, 'maybe_upgrade_stats_table'), 1);
         add_action('init', array($this, 'ensure_admin_capabilities'), 20);
         add_action('admin_menu', array($this, 'hide_non_admin_menu'), 999);
         add_action('admin_init', array($this, 'restrict_non_admin_access'));
@@ -27,6 +28,7 @@ final class Ship_Modal
         add_filter('redirect_post_location', array($this, 'redirect_to_preview_after_save'), 10, 2);
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('admin_notices', array($this, 'render_validation_notice'));
+        add_action('admin_notices', array($this, 'render_stats_reset_notice'));
         add_filter('manage_ship_modal_posts_columns', array($this, 'admin_columns'));
         add_action('manage_ship_modal_posts_custom_column', array($this, 'render_admin_column'), 10, 2);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_front_assets'));
@@ -36,17 +38,108 @@ final class Ship_Modal
         add_action('wp_ajax_nopriv_ship_modal_event', array($this, 'record_event'));
         add_action('wp_ajax_ship_modal_search_targets', array($this, 'search_targets'));
         add_action('admin_post_ship_modal_preview', array($this, 'preview'));
+        add_action('admin_post_ship_modal_export_stats', array($this, 'export_stats'));
+        add_action('admin_post_ship_modal_reset_stats', array($this, 'reset_stats'));
     }
 
     public static function activate()
     {
-        self::instance()->register_post_type();
+        $instance = self::instance();
+        $instance->register_post_type();
+        $instance->maybe_upgrade_stats_table();
         flush_rewrite_rules();
     }
 
     public static function deactivate()
     {
         flush_rewrite_rules();
+    }
+
+    /**
+     * 日別のイベント集計テーブルを作成・更新する。
+     *
+     * 既存サイトでは再有効化されないままアップデートされることがあるため、
+     * activation hookだけでなくinitでも一度だけ確認する。
+     */
+    public function maybe_upgrade_stats_table()
+    {
+        global $wpdb;
+
+        $table = $this->stats_table_name();
+        $version = get_option('ship_modal_stats_db_version', '');
+        $exists = $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+        if ('1.0' === $version && $exists === $table) {
+            return;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $charset_collate = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE {$table} (
+            modal_id bigint(20) unsigned NOT NULL,
+            stat_date date NOT NULL,
+            event_name varchar(20) NOT NULL,
+            event_count bigint(20) unsigned NOT NULL DEFAULT 0,
+            PRIMARY KEY  (modal_id,event_name,stat_date),
+            KEY modal_date (modal_id,stat_date),
+            KEY stat_date (stat_date)
+        ) {$charset_collate};";
+        dbDelta($sql);
+        update_option('ship_modal_stats_db_version', '1.0', false);
+    }
+
+    private function stats_table_name()
+    {
+        global $wpdb;
+
+        return $wpdb->prefix . 'ship_modal_stats';
+    }
+
+    private function stats_event_labels()
+    {
+        return array(
+            'impression' => '表示',
+            'click' => 'クリック',
+            'close' => '閉じる',
+            'page_view' => 'ページ閲覧',
+        );
+    }
+
+    private function stats_date($value, $fallback)
+    {
+        $value = is_string($value) ? trim($value) : '';
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) && strtotime($value) !== false) {
+            return $value;
+        }
+
+        return $fallback;
+    }
+
+    private function get_daily_stats($post_id, $from = '', $to = '')
+    {
+        global $wpdb;
+
+        $this->maybe_upgrade_stats_table();
+        $today = current_time('Y-m-d');
+        $from = $this->stats_date($from, '');
+        $to = $this->stats_date($to, '');
+        $where = 'modal_id = %d';
+        $params = array(absint($post_id));
+        if ($from !== '') {
+            $where .= ' AND stat_date >= %s';
+            $params[] = $from;
+        }
+        if ($to !== '') {
+            $where .= ' AND stat_date <= %s';
+            $params[] = $to;
+        }
+        if ($to === '') {
+            // 終了日の指定がない場合も、未来日が混ざらないようにする。
+            $where .= ' AND stat_date <= %s';
+            $params[] = $today;
+        }
+
+        $query = "SELECT stat_date, event_name, event_count FROM {$this->stats_table_name()} WHERE {$where} ORDER BY stat_date DESC, event_name ASC";
+        return $wpdb->get_results($wpdb->prepare($query, $params));
     }
 
     public function register_post_type()
@@ -476,12 +569,53 @@ final class Ship_Modal
         $closes = (int) get_post_meta($post->ID, '_ship_modal_closes', true);
         $page_views = (int) get_post_meta($post->ID, '_ship_modal_page_views', true);
         $rate = $impressions > 0 ? round(($clicks / $impressions) * 100, 1) : 0;
+        $event_labels = $this->stats_event_labels();
+        $today = current_time('Y-m-d');
+        $recent_from = date_i18n('Y-m-d', strtotime($today . ' -13 days'));
+        $daily_rows = $this->get_daily_stats($post->ID, $recent_from, $today);
+        $daily = array();
+        foreach ($daily_rows as $row) {
+            if (! isset($daily[$row->stat_date])) {
+                $daily[$row->stat_date] = array_fill_keys(array_keys($event_labels), 0);
+            }
+            if (isset($daily[$row->event_name])) {
+                $daily[$row->stat_date][$row->event_name] = (int) $row->event_count;
+            }
+        }
+
+        echo '<div class="ship-modal-stats-summary">';
         echo '<p><strong>表示回数：</strong> ' . number_format_i18n($impressions) . '</p>';
         echo '<p><strong>クリック数：</strong> ' . number_format_i18n($clicks) . '</p>';
         echo '<p><strong>クリック率：</strong> ' . esc_html($rate) . '%</p>';
         echo '<p><strong>閉じる回数：</strong> ' . number_format_i18n($closes) . '</p>';
         echo '<p><strong>ページ閲覧数：</strong> ' . number_format_i18n($page_views) . '</p>';
-        echo '<p class="description">GTM向けにdataLayerへ表示・クリック・閉じる・ページ切り替えイベントも送信します。</p>';
+        echo '</div>';
+        echo '<p class="description">ページ閲覧数はページャーのページ表示・切り替えを記録します。表示・クリック・閉じる・ページ閲覧はGTM/GA4向けdataLayerにも送信します。</p>';
+
+        echo '<h4 class="ship-modal-stats-heading">直近14日の日別集計</h4>';
+        if ($daily) {
+            echo '<div class="ship-modal-stats-table-wrap"><table class="widefat striped ship-modal-stats-table"><thead><tr><th>日付</th><th>表示</th><th>クリック</th><th>CTR</th><th>閉じる</th><th>ページ閲覧</th></tr></thead><tbody>';
+            foreach ($daily as $date => $values) {
+                $daily_rate = $values['impression'] > 0 ? round(($values['click'] / $values['impression']) * 100, 1) : 0;
+                echo '<tr><td>' . esc_html($date) . '</td><td>' . number_format_i18n($values['impression']) . '</td><td>' . number_format_i18n($values['click']) . '</td><td>' . esc_html($daily_rate) . '%</td><td>' . number_format_i18n($values['close']) . '</td><td>' . number_format_i18n($values['page_view']) . '</td></tr>';
+            }
+            echo '</tbody></table></div>';
+        } else {
+            echo '<p class="description">日別データはまだありません。公開ページでモーダルを表示すると記録されます。</p>';
+        }
+
+        echo '<details class="ship-modal-stats-tools"><summary>CSV出力・計測リセット</summary>';
+        echo '<p class="description">期間を指定して、日別の表示・クリック・閉じる・ページ閲覧をCSVでダウンロードできます。</p>';
+        echo '<form method="get" action="' . esc_url(admin_url('admin-post.php')) . '" target="_blank" class="ship-modal-stats-export-form">';
+        echo '<input type="hidden" name="action" value="ship_modal_export_stats"><input type="hidden" name="post_id" value="' . absint($post->ID) . '">';
+        wp_nonce_field('ship_modal_export_stats_' . absint($post->ID), '_wpnonce', false);
+        echo '<label>開始 <input type="date" name="from" value="' . esc_attr($recent_from) . '"></label> <label>終了 <input type="date" name="to" value="' . esc_attr($today) . '"></label> <button type="submit" class="button">CSVをダウンロード</button>';
+        echo '</form>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="ship-modal-stats-reset-form" onsubmit="return window.confirm(\'このモーダルの計測データをすべてリセットします。よろしいですか？\');">';
+        echo '<input type="hidden" name="action" value="ship_modal_reset_stats"><input type="hidden" name="post_id" value="' . absint($post->ID) . '">';
+        wp_nonce_field('ship_modal_reset_stats_' . absint($post->ID));
+        echo '<button type="submit" class="button">計測をリセット</button><span class="description">全期間の集計と日別データを削除します。</span>';
+        echo '</form></details>';
     }
 
     private function normalize_buttons($raw_buttons, $max, $context, &$errors)
@@ -1097,7 +1231,89 @@ final class Ship_Modal
         $key = $keys[$event];
         $count = (int) get_post_meta($post_id, $key, true);
         update_post_meta($post_id, $key, $count + 1);
+
+        // 集計画面・CSV用の日別データも同時に保存する。既存のメタ集計は互換性のため残す。
+        global $wpdb;
+        $this->maybe_upgrade_stats_table();
+        $wpdb->query($wpdb->prepare(
+            "INSERT INTO {$this->stats_table_name()} (modal_id, stat_date, event_name, event_count) VALUES (%d, %s, %s, 1) ON DUPLICATE KEY UPDATE event_count = event_count + 1",
+            $post_id,
+            current_time('Y-m-d'),
+            $event
+        ));
         wp_send_json_success();
+    }
+
+    public function export_stats()
+    {
+        $post_id = isset($_GET['post_id']) ? absint($_GET['post_id']) : 0;
+        if (! $this->is_admin_user() || ! $post_id || 'ship_modal' !== get_post_type($post_id)) {
+            wp_die('この機能は管理者のみ利用できます。', 'Ship Modal', array('response' => 403));
+        }
+        check_admin_referer('ship_modal_export_stats_' . $post_id);
+
+        $from = isset($_GET['from']) ? $this->stats_date(sanitize_text_field(wp_unslash($_GET['from'])), '') : '';
+        $to = isset($_GET['to']) ? $this->stats_date(sanitize_text_field(wp_unslash($_GET['to'])), '') : '';
+        if ($from && $to && $from > $to) {
+            $temporary = $from;
+            $from = $to;
+            $to = $temporary;
+        }
+        $rows = $this->get_daily_stats($post_id, $from, $to);
+        $labels = $this->stats_event_labels();
+        $title = get_the_title($post_id);
+        $period_totals = array_fill_keys(array_keys($labels), 0);
+
+        nocache_headers();
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="ship-modal-' . $post_id . '-stats-' . date('Ymd-His') . '.csv"');
+        $output = fopen('php://output', 'w');
+        fwrite($output, "\xEF\xBB\xBF");
+        fputcsv($output, array('モーダルID', 'タイトル', '日付', 'イベント', '件数'));
+        foreach ($rows as $row) {
+            $event_label = isset($labels[$row->event_name]) ? $labels[$row->event_name] : $row->event_name;
+            $count = (int) $row->event_count;
+            if (isset($period_totals[$row->event_name])) {
+                $period_totals[$row->event_name] += $count;
+            }
+            fputcsv($output, array($post_id, $title, $row->stat_date, $event_label, $count));
+        }
+        foreach ($period_totals as $event => $count) {
+            fputcsv($output, array($post_id, $title, '期間合計', isset($labels[$event]) ? $labels[$event] : $event, $count));
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function reset_stats()
+    {
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        if (! $this->is_admin_user() || ! $post_id || 'ship_modal' !== get_post_type($post_id)) {
+            wp_die('この機能は管理者のみ利用できます。', 'Ship Modal', array('response' => 403));
+        }
+        check_admin_referer('ship_modal_reset_stats_' . $post_id);
+
+        foreach (array('_ship_modal_impressions', '_ship_modal_clicks', '_ship_modal_closes', '_ship_modal_page_views') as $key) {
+            delete_post_meta($post_id, $key);
+        }
+        global $wpdb;
+        $this->maybe_upgrade_stats_table();
+        $wpdb->delete($this->stats_table_name(), array('modal_id' => $post_id), array('%d'));
+
+        $location = add_query_arg(
+            array('post' => $post_id, 'action' => 'edit', 'ship_modal_stats_reset' => '1'),
+            admin_url('post.php')
+        );
+        wp_safe_redirect($location);
+        exit;
+    }
+
+    public function render_stats_reset_notice()
+    {
+        if (! $this->is_admin_user() || empty($_GET['ship_modal_stats_reset']) || '1' !== sanitize_text_field(wp_unslash($_GET['ship_modal_stats_reset']))) {
+            return;
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>このモーダルの計測データをリセットしました。</p></div>';
     }
 }
 

@@ -35,18 +35,35 @@
   }
 
   function trackServer(modal, event) {
-    if (!config.ajaxUrl || !config.nonce) return;
-    var body = new URLSearchParams({
-      action: 'ship_modal_event',
-      nonce: config.nonce,
-      modal_id: modal.dataset.postId || '',
-      event: event
-    });
+    if (!modal || !config.ajaxUrl || !config.nonce) return;
+    var payload = [
+      'action=ship_modal_event',
+      'nonce=' + encodeURIComponent(config.nonce),
+      'modal_id=' + encodeURIComponent(modal.dataset.postId || ''),
+      'event=' + encodeURIComponent(event)
+    ].join('&');
     if (navigator.sendBeacon) {
-      navigator.sendBeacon(config.ajaxUrl, body);
-    } else {
-      fetch(config.ajaxUrl, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body, credentials: 'same-origin' });
+      try {
+        var beaconBody = window.Blob ? new Blob([payload], { type: 'application/x-www-form-urlencoded;charset=UTF-8' }) : payload;
+        if (navigator.sendBeacon(config.ajaxUrl, beaconBody)) return;
+      } catch (e) { /* fall through to fetch/XHR */ }
     }
+    if (window.fetch) {
+      try {
+        window.fetch(config.ajaxUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+          body: payload,
+          credentials: 'same-origin',
+          keepalive: true
+        });
+        return;
+      } catch (e) { /* fall through to XHR */ }
+    }
+    var request = new XMLHttpRequest();
+    request.open('POST', config.ajaxUrl, true);
+    request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+    request.send(payload);
   }
 
   function currentPage(modal) {
