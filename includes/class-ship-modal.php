@@ -100,7 +100,7 @@ final class Ship_Modal
             'impression' => '表示',
             'click' => 'クリック',
             'close' => '閉じる',
-            'page_view' => 'ページ閲覧',
+            'page_view' => 'ページャー閲覧',
         );
     }
 
@@ -590,11 +590,11 @@ final class Ship_Modal
         echo '<p><strong>閉じる回数：</strong> ' . number_format_i18n($closes) . '</p>';
         echo '<p><strong>ページ閲覧数：</strong> ' . number_format_i18n($page_views) . '</p>';
         echo '</div>';
-        echo '<p class="description">ページ閲覧数はページャーのページ表示・切り替えを記録します。表示・クリック・閉じる・ページ閲覧はGTM/GA4向けdataLayerにも送信します。</p>';
+        echo '<p class="description">ページャー閲覧数はページャーのページ表示・切り替えを記録します。画像＋HTMLなどページャーを使わないフレームでは0のままです。表示・クリック・閉じる・ページャー閲覧はGTM/GA4向けdataLayerにも送信します。</p>';
 
         echo '<h4 class="ship-modal-stats-heading">直近14日の日別集計</h4>';
         if ($daily) {
-            echo '<div class="ship-modal-stats-table-wrap"><table class="widefat striped ship-modal-stats-table"><thead><tr><th>日付</th><th>表示</th><th>クリック</th><th>CTR</th><th>閉じる</th><th>ページ閲覧</th></tr></thead><tbody>';
+            echo '<div class="ship-modal-stats-table-wrap"><table class="widefat striped ship-modal-stats-table"><thead><tr><th>日付</th><th>表示</th><th>クリック</th><th>CTR</th><th>閉じる</th><th>ページャー閲覧</th></tr></thead><tbody>';
             foreach ($daily as $date => $values) {
                 $daily_rate = $values['impression'] > 0 ? round(($values['click'] / $values['impression']) * 100, 1) : 0;
                 echo '<tr><td>' . esc_html($date) . '</td><td>' . number_format_i18n($values['impression']) . '</td><td>' . number_format_i18n($values['click']) . '</td><td>' . esc_html($daily_rate) . '%</td><td>' . number_format_i18n($values['close']) . '</td><td>' . number_format_i18n($values['page_view']) . '</td></tr>';
