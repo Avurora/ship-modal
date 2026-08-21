@@ -578,7 +578,7 @@ final class Ship_Modal
             if (! isset($daily[$row->stat_date])) {
                 $daily[$row->stat_date] = array_fill_keys(array_keys($event_labels), 0);
             }
-            if (isset($daily[$row->event_name])) {
+            if (isset($daily[$row->stat_date][$row->event_name])) {
                 $daily[$row->stat_date][$row->event_name] = (int) $row->event_count;
             }
         }
