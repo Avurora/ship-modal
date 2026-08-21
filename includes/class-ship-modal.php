@@ -588,7 +588,7 @@ final class Ship_Modal
         echo '<p><strong>クリック数：</strong> ' . number_format_i18n($clicks) . '</p>';
         echo '<p><strong>クリック率：</strong> ' . esc_html($rate) . '%</p>';
         echo '<p><strong>閉じる回数：</strong> ' . number_format_i18n($closes) . '</p>';
-        echo '<p><strong>ページ閲覧数：</strong> ' . number_format_i18n($page_views) . '</p>';
+        echo '<p><strong>ページャー閲覧数：</strong> ' . number_format_i18n($page_views) . '</p>';
         echo '</div>';
         echo '<p class="description">ページャー閲覧数はページャーのページ表示・切り替えを記録します。画像＋HTMLなどページャーを使わないフレームでは0のままです。表示・クリック・閉じる・ページャー閲覧はGTM/GA4向けdataLayerにも送信します。</p>';
 
@@ -605,7 +605,7 @@ final class Ship_Modal
         }
 
         echo '<details class="ship-modal-stats-tools"><summary>CSV出力・計測リセット</summary>';
-        echo '<p class="description">期間を指定して、日別の表示・クリック・閉じる・ページ閲覧をCSVでダウンロードできます。</p>';
+        echo '<p class="description">期間を指定して、日別の表示・クリック・閉じる・ページャー閲覧をCSVでダウンロードできます。</p>';
         $export_base_url = wp_nonce_url(
             add_query_arg(array('action' => 'ship_modal_export_stats', 'post_id' => absint($post->ID)), admin_url('admin-post.php')),
             'ship_modal_export_stats_' . absint($post->ID),
