@@ -69,8 +69,8 @@
 .ship-modal .ship-modal__pager .ship-modal__pager-dot{box-sizing:border-box;width:10px;height:10px;min-width:10px;min-height:10px!important;padding:0;border-radius:50%;font-size:0;line-height:1;overflow:hidden;flex:0 0 10px}
 .ship-modal .ship-modal__pager{margin-top:16px;padding-top:0;border-top:0}
 .ship-modal .ship-modal__content--pager-image-only .ship-modal__pager{margin-top:0}
-.ship-modal .ship-modal__pager .ship-modal__pager-arrow{box-sizing:border-box;width:36px;height:36px;min-width:36px!important;min-height:36px!important;padding:0!important;font-size:0;line-height:1}
-.ship-modal .ship-modal__pager .ship-modal__pager-arrow::before{font-size:22px;line-height:1}
+.ship-modal .ship-modal__pager .ship-modal__pager-arrow{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;min-width:36px!important;min-height:36px!important;padding:0!important;font-size:0;line-height:1}
+.ship-modal .ship-modal__pager .ship-modal__pager-arrow::before{display:block;font-size:22px;line-height:1;transform:translateY(-1px)}
 .ship-modal .ship-modal__pager .ship-modal__pager-arrow[data-ship-modal-page-prev]::before{content:'‹'}
 .ship-modal .ship-modal__pager .ship-modal__pager-arrow[data-ship-modal-page-next]::before{content:'›'}
 .ship-modal .ship-modal__buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
